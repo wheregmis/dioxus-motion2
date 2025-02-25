@@ -1,0 +1,30 @@
+[package]
+name = "dioxus-motion2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+easer = "0.3.0"
+futures-util = { version = "0.3.31", default-features = false }
+instant = { version = "0.1.13", optional = true }
+wasm-bindgen = { version = "0.2.100", optional = true, default-features = false }
+web-sys = { version = "0.3.77", optional = true, default-features = false, features = [
+    "Window",
+] }
+futures-channel = { version = "0.3.31", default-features = false }
+# For desktop platforms
+tokio = { version = "1.43.0", optional = true, default-features = false }
+# For transition
+dioxus = { git = "https://github.com/wheregmis/dioxus.git", branch = "expose_outlet_context", features = [
+    "router",
+] }
+dashmap = "6.1.0"
+once_cell = "1.20.3"
+js-sys = "0.3.77"
+ordered-float = "5.0.0"
+
+
+[features]
+default = ["web"]
+web = ["wasm-bindgen", "web-sys", "instant/wasm-bindgen"]
+desktop = ["tokio", "instant"]
