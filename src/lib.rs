@@ -14,7 +14,7 @@
 //!
 //! # Example
 //! ```rust
-//! use dioxus_motion::prelude::*;
+//! use dioxus_motion2::prelude::*;
 //!
 //! // Create and start a spring animation
 //! let position = use_motion(0.0)
@@ -103,10 +103,8 @@ pub mod prelude {
 /// ```
 pub fn use_motion<T: Animatable>(initial: T) -> MotionValue<T> {
     let animation_engine = AnimationEngine::new(initial);
-    let signal = use_signal(|| animation_engine);
+    let mut signal = use_signal(|| animation_engine);
 
-    // Start the animation loop
-    let mut signal_copy = signal.clone();
     use_future(move || async move {
         let mut last_frame = MotionTime::now();
 
@@ -114,7 +112,7 @@ pub fn use_motion<T: Animatable>(initial: T) -> MotionValue<T> {
             let now = MotionTime::now();
             let dt = now.duration_since(last_frame).as_secs_f32();
 
-            let is_active = signal_copy.write().update(dt);
+            let is_active = signal.write().update(dt);
 
             // Adaptive frame rate based on activity
             let delay = if is_active {

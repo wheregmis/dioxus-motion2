@@ -12,13 +12,16 @@ use crate::animation::{Animation, AnimationState, AnimationTiming};
 /// Type alias for easing functions from the easer package
 pub type EasingFunction = fn(f32, f32, f32, f32) -> f32;
 
-/// Configuration for tween-based animations
+/// Tween animation with configurable duration and easing
 ///
-/// # Examples
-/// ```rust
+/// # Example
+/// ```
+/// use dioxus_motion2::{Tween, Duration};
+/// use easer::functions::Cubic;
+///
 /// let tween = Tween::new()
 ///     .duration(Duration::from_millis(500))
-///     .easing(easings::Cubic::ease_out);
+///     .easing(Cubic::ease_out);
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Tween {

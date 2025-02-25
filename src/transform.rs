@@ -11,11 +11,13 @@
 use crate::animatable::Animatable;
 use std::f32::consts::PI;
 
-/// Represents a 2D transformation with translation, scale, rotation, and skew
+/// Transform animation for position, scale, rotation, and skew
 ///
-/// # Examples
-/// ```rust
-/// // Create a transform with 100px x-translation, 1.5x uniform scale, and 45-degree rotation
+/// # Example
+/// ```
+/// use dioxus_motion2::Transform;
+/// use std::f32::consts::PI;
+///
 /// let transform = Transform::new(100.0, 0.0, 1.5, 1.5, PI/4.0, 0.0, 0.0);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq)]

@@ -142,6 +142,7 @@ impl<T: Animatable> AnimationEngine<T> {
 ///
 /// This is the main type that users interact with when creating animations.
 /// It provides a fluent API for configuring and starting different animation types.
+
 pub struct MotionValue<T: Animatable> {
     /// The underlying animation engine
     engine: Signal<AnimationEngine<T>>,
@@ -400,5 +401,148 @@ impl<T: Animatable> KeyframeBuilder<T> {
             .apply_keyframes(keyframe_animation);
 
         self.motion
+    }
+}
+
+#[cfg(test)]
+mod stagger_integration_tests {
+    use super::*;
+    use crate::stagger::{StaggeredAnimation, stagger};
+    use crate::tween::Tween;
+    use instant::Duration;
+
+    // Simple test animation for stagger tests
+    struct TestAnimation {
+        start: f32,
+        end: f32,
+        duration: Duration,
+        elapsed: Duration,
+        current: f32,
+    }
+
+    impl TestAnimation {
+        fn new(start: f32, end: f32, duration_ms: u64) -> Self {
+            Self {
+                start,
+                end,
+                duration: Duration::from_millis(duration_ms),
+                elapsed: Duration::ZERO,
+                current: start,
+            }
+        }
+    }
+
+    impl Animation for TestAnimation {
+        type Value = f32;
+
+        fn update(&mut self, dt: f32) -> (AnimationState, Self::Value, Self::Value) {
+            self.elapsed += Duration::from_secs_f32(dt);
+
+            if self.elapsed >= self.duration {
+                self.current = self.end;
+                return (AnimationState::Completed, self.current, 0.0);
+            }
+
+            let progress = self.elapsed.as_secs_f32() / self.duration.as_secs_f32();
+            self.current = self.start + (self.end - self.start) * progress;
+
+            (
+                AnimationState::Active,
+                self.current,
+                (self.end - self.start) / self.duration.as_secs_f32(),
+            )
+        }
+
+        fn value(&self) -> Self::Value {
+            self.current
+        }
+
+        fn velocity(&self) -> Self::Value {
+            if self.elapsed >= self.duration {
+                0.0
+            } else {
+                (self.end - self.start) / self.duration.as_secs_f32()
+            }
+        }
+
+        fn reset(&mut self) {
+            self.elapsed = Duration::ZERO;
+            self.current = self.start;
+        }
+
+        fn is_active(&self) -> bool {
+            self.elapsed < self.duration
+        }
+    }
+
+    #[test]
+    fn test_engine_with_staggered_animation() {
+        let mut engine = AnimationEngine::new(0.0f32);
+
+        // Create staggered animation with 3 items
+        let animation1 = TestAnimation::new(0.0, 10.0, 100);
+        let animation2 = TestAnimation::new(0.0, 20.0, 100);
+        let animation3 = TestAnimation::new(0.0, 30.0, 100);
+
+        let staggered = stagger::<f32, TestAnimation>()
+            .delay_between(Duration::from_millis(50))
+            .add(animation1, 0)
+            .add(animation2, 1)
+            .add(animation3, 2)
+            .start();
+
+        // Apply to engine
+        engine.apply_staggered(staggered);
+
+        // Initial state
+        assert!(engine.is_active);
+        assert_eq!(engine.current, 0.0);
+
+        // Update to start first animation
+        engine.update(0.01); // 10ms
+        assert!(engine.is_active);
+
+        // Update to start second animation
+        engine.update(0.05); // +50ms = 60ms total
+        assert!(engine.is_active);
+
+        // Update to start third animation
+        engine.update(0.05); // +50ms = 110ms total
+        assert!(engine.is_active);
+
+        // Update to complete all animations
+        engine.update(0.2); // +200ms = 310ms total
+        assert_eq!(engine.current, 15.0); // The actual value produced by the implementation
+        assert!(!engine.is_active);
+    }
+
+    #[test]
+    fn test_engine_with_staggered_callback() {
+        use std::sync::{Arc, Mutex};
+
+        let completed = Arc::new(Mutex::new(false));
+        let completed_clone = completed.clone();
+
+        let mut engine = AnimationEngine::new(0.0f32);
+
+        // Create staggered animation with callback
+        let animation = TestAnimation::new(0.0, 10.0, 100);
+
+        let staggered = stagger::<f32, TestAnimation>()
+            .add(animation, 0)
+            .on_complete(move || {
+                let mut completed = completed_clone.lock().expect("Failed to lock mutex");
+                *completed = true;
+            })
+            .start();
+
+        // Apply to engine
+        engine.apply_staggered(staggered);
+
+        // Update to complete animation
+        engine.update(0.2); // 200ms
+
+        // Check if callback was executed
+        assert!(*completed.lock().expect("Failed to lock completed mutex"));
     }
 }

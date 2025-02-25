@@ -6,16 +6,16 @@
 use crate::animatable::Animatable;
 use crate::animation::{Animation, AnimationState, AnimationTiming};
 
-/// Spring configuration for physics-based animations
+/// Spring animation with configurable physics
 ///
-/// Uses a mass-spring-damper system to create natural motion.
+/// # Example
+/// ```
+/// use dioxus_motion2::Spring;
 ///
-/// # Examples
-/// ```rust
 /// let spring = Spring::new()
-///     .stiffness(180.0)  // Higher values = faster snap
-///     .damping(12.0)     // Higher values = less bounce
-///     .mass(1.0);        // Higher values = more inertia
+///     .stiffness(180.0)
+///     .damping(20.0)
+///     .mass(1.0);
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Spring {

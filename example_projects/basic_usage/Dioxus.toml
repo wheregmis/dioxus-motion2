@@ -1,0 +1,24 @@
+[application]
+
+# App (Project) Name
+name = "basic_usage"
+
+[web.app]
+
+# HTML title tag content
+title = "basic_usage"
+
+# include `assets` in web platform
+[web.resource]
+
+# Additional CSS style files
+style = []
+
+# Additional JavaScript files
+script = []
+
+[web.resource.dev]
+
+# Javascript code file
+# serve: [dev-server] only
+script = []
