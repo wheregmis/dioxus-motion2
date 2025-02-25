@@ -59,11 +59,9 @@ fn SpringExample() -> Element {
     // Create a spring-animated value starting at 0.0
     let position = use_motion(0.0);
 
-    // Button click handlers for animation
-    let start_position = position.clone(); // Clone for the first closure
     let start_animation = move |_| {
         // Configure and start a spring animation
-        start_position
+        position
             .spring()
             .stiffness(180.0) // Higher = stronger spring
             .damping(12.0) // Higher = less bouncy
@@ -74,9 +72,8 @@ fn SpringExample() -> Element {
             .animate_to(200.0);
     };
 
-    let reset_position = position.clone(); // Clone for the second closure
     let reset_animation = move |_| {
-        reset_position.spring().stiffness(150.0).animate_to(0.0);
+        position.spring().stiffness(150.0).animate_to(0.0);
     };
 
     // Generate the style based on the animated value
@@ -142,19 +139,18 @@ fn TweenExample() -> Element {
     let opacity = use_motion(0.0);
 
     // Button click handlers for animation
-    let start_opacity = opacity.clone(); // Clone for the first closure
+
     let start_animation = move |_| {
         // Configure and start a tween animation
-        start_opacity
+        opacity
             .tween()
             .duration(Duration::from_millis(800))
             .easing(easer::functions::Cubic::ease_in_out)
             .animate_to(1.0);
     };
 
-    let reset_opacity = opacity.clone(); // Clone for the second closure
     let reset_animation = move |_| {
-        reset_opacity
+        opacity
             .tween()
             .duration(Duration::from_millis(500))
             .easing(easer::functions::Cubic::ease_out)
@@ -208,11 +204,11 @@ opacity.tween()
 fn KeyframeExample() -> Element {
     // Create a keyframe-animated value for position
     let position = use_motion(0.0);
-    let start_position = position.clone(); // Clone for the second closure
-                                           // Button click handlers for animation
+
+    // Button click handlers for animation
     let start_animation = move |_| {
         // Configure and start a keyframe animation
-        start_position
+        position
             .keyframes()
             .keyframe(0.0, 0.0)
             .keyframe_with_easing(0.3, 150.0, easer::functions::Cubic::ease_out)
@@ -222,9 +218,8 @@ fn KeyframeExample() -> Element {
             .start();
     };
 
-    let reset_position = position.clone(); // Clone for the second closure
     let reset_animation = move |_| {
-        reset_position
+        position
             .tween()
             .duration(Duration::from_millis(500))
             .animate_to(0.0);
@@ -285,10 +280,10 @@ fn TransformExample() -> Element {
     let transform = use_motion(Transform::identity());
 
     // Button click handlers for animation
-    let start_transform = transform.clone(); // Clone for the first closure
+
     let start_animation = move |_| {
         // Animate multiple transform properties
-        start_transform
+        transform
             .spring()
             .stiffness(120.0)
             .damping(10.0)
@@ -303,9 +298,8 @@ fn TransformExample() -> Element {
             ));
     };
 
-    let reset_transform = transform.clone(); // Clone for the second closure
     let reset_animation = move |_| {
-        reset_transform
+        transform
             .spring()
             .stiffness(150.0)
             .damping(20.0)
@@ -371,39 +365,33 @@ fn ColorExample() -> Element {
     // Create a motion value for color
     let color = use_motion(Color::from_rgba(100, 100, 100, 255));
 
-    let color_for_red = color.clone(); // Clone for the green animation
-                                       // Button click handlers for animation
+    // Button click handlers for animation
     let animate_red = move |_| {
-        color_for_red
+        color
             .tween()
             .duration(Duration::from_millis(500))
             .easing(easer::functions::Cubic::ease_out)
             .animate_to(Color::from_rgba(220, 50, 50, 255));
     };
 
-    let color_for_green = color.clone(); // Clone for the green animation
     let animate_green = move |_| {
-        color_for_green
+        color
             .tween()
             .duration(Duration::from_millis(500))
             .easing(easer::functions::Cubic::ease_out)
             .animate_to(Color::from_rgba(50, 180, 50, 255));
     };
 
-    let color_for_blue = color.clone(); // Clone for the green animation
-
     let animate_blue = move |_| {
-        color_for_blue
+        color
             .tween()
             .duration(Duration::from_millis(500))
             .easing(easer::functions::Cubic::ease_out)
             .animate_to(Color::from_rgba(50, 50, 220, 255));
     };
 
-    let reset_color = color.clone(); // Clone for the reset animation
-
     let reset_animation = move |_| {
-        reset_color
+        color
             .tween()
             .duration(Duration::from_millis(500))
             .animate_to(Color::from_rgba(100, 100, 100, 255));
@@ -467,26 +455,23 @@ color.tween()
 // /// Group animation example
 // #[component]
 // fn GroupExample() -> Element {
-//     // Create several motion values to animate together
 //     let x_position = use_motion(0.0);
 //     let y_position = use_motion(0.0);
 //     let rotation = use_motion(0.0);
 //     let scale = use_motion(1.0);
 
-//     // Active state tracker
 //     let is_animating = use_signal(|| false);
 
-//     // Button click handler for group animation
 //     let start_animation = move |_| {
 //         is_animating.set(true);
 
 //         // Create an animation group
-//         let mut group_animation = group::<f32>().on_complete(|| {
+//         let mut group_animation = group::<f64>().on_complete(move || {
 //             is_animating.set(false);
 //             println!("Group animation completed!");
 //         });
 
-//         // Add animations to the group
+//         // Convert each animation to a proper Animation type using into_animation()
 //         group_animation = group_animation.add_animation(
 //             x_position
 //                 .spring()
@@ -518,6 +503,8 @@ color.tween()
 //                 .damping(10.0)
 //                 .animate_to(1.3),
 //         );
+
+//         group_animation.start();
 //     };
 
 //     let reset_animation = move |_| {
@@ -717,91 +704,89 @@ color.tween()
 // }
 
 // Staggered animation example
-// #[component]
-// fn StaggeredExample() -> Element {
-//     // Create multiple motion values for staggered animation
-//     let items = (0..5).collect::<Vec<_>>();
-//     let motion_values = items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>();
+#[component]
+fn StaggeredExample() -> Element {
+    // Create multiple motion values for staggered animation
+    let items = (0..5).collect::<Vec<_>>();
+    let motion_values = use_signal(|| items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>());
 
-//     // Button click handler for staggered animation
-//     let start_animation = move |_| {
-//         for (i, motion) in motion_values.iter().enumerate() {
-//             // Start with a staggered delay
-//             let _delay = Duration::from_millis(i as u64 * 500);
+    // Button click handler for staggered animation
+    let start_animation = move |_| {
+        for (i, motion) in motion_values.iter().enumerate() {
+            // Start with a staggered delay
+            let _delay = Duration::from_millis(i as u64 * 500);
 
-//             motion
-//                 .tween()
-//                 .duration(Duration::from_millis(600))
-//                 .easing(easer::functions::Back::ease_out)
-//                 .animate_to(150.0);
+            motion
+                .tween()
+                .duration(Duration::from_millis(600))
+                .easing(easer::functions::Back::ease_out)
+                .animate_to(150.0);
 
-//             // We would use staggered animation here, but we're simulating it with delays
-//         }
-//     };
+            // We would use staggered animation here, but we're simulating it with delays
+        }
+    };
 
-//     let reset_motion_values_for_animation = motion_values.clone();
+    let reset_animation = move |_| {
+        for motion in motion_values.iter() {
+            motion
+                .tween()
+                .duration(Duration::from_millis(300))
+                .animate_to(0.0);
+        }
+    };
 
-//     let reset_animation = move |_| {
-//         for motion in reset_motion_values_for_animation.iter() {
-//             motion
-//                 .tween()
-//                 .duration(Duration::from_millis(300))
-//                 .animate_to(0.0);
-//         }
-//     };
+    rsx! {
+            section { class: "mb-12",
+                h2 { class: "text-2xl font-semibold mb-4", "Staggered Animation" }
+                p { class: "mb-4", "Staggered animations create cascading effects by starting animations with sequential delays." }
 
-//     rsx! {
-//             section { class: "mb-12",
-//                 h2 { class: "text-2xl font-semibold mb-4", "Staggered Animation" }
-//                 p { class: "mb-4", "Staggered animations create cascading effects by starting animations with sequential delays." }
+                div { class: "my-6 relative min-h-[200px]",
+                    // Render items with staggered animations
+                    {items.iter().enumerate().map(|(i, item)| {
+                        let position = motion_values.read()[i].get();
 
-//                 div { class: "my-6 relative min-h-[200px]",
-//                     // Render items with staggered animations
-//                     {items.iter().enumerate().map(|(i, item)| {
-//                         let position = motion_values[i].get();
+                        rsx! {
+                            div {
+                                key: "{i}",
+                                class: "mb-2 w-16 h-10 bg-teal-500 rounded shadow-md flex items-center justify-center text-white",
+                                style: "transform: translateX({position}px);",
+                                "Item {item}"
+                            }
+                        }
+                    })}
+                }
 
-//                         rsx! {
-//                             div {
-//                                 key: "{i}",
-//                                 class: "mb-2 w-16 h-10 bg-teal-500 rounded shadow-md flex items-center justify-center text-white",
-//                                 style: "transform: translateX({position}px);",
-//                                 "Item {item}"
-//                             }
-//                         }
-//                     })}
-//                 }
+                div { class: "flex gap-4",
+                    button {
+                        class: "px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded",
+                        onclick: start_animation,
+                        "Start Staggered"
+                    }
+                    button {
+                        class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
+                        onclick: reset_animation,
+                        "Reset"
+                    }
+                }
 
-//                 div { class: "flex gap-4",
-//                     button {
-//                         class: "px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded",
-//                         onclick: start_animation,
-//                         "Start Staggered"
-//                     }
-//                     button {
-//                         class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
-//                         onclick: reset_animation,
-//                         "Reset"
-//                     }
-//                 }
+                pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
+                    code {
+    {r#"// Create multiple motion values
+let items = (0..5).collect::<Vec<_>>();
+let motion_values = use_signal(|| {
+    items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>()
+});
 
-//                 pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
-//                     code {
-//     {r#"// Create multiple motion values
-// let items = (0..5).collect::<Vec<_>>();
-// let motion_values = use_signal(|| {
-//     items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>()
-// });
-
-// // Start a staggered animation
-// for (i, motion) in motion_values.read().iter().enumerate() {
-//     // Staggered animation with delay based on index
-//     motion.tween()
-//         .duration(Duration::from_millis(600))
-//         .easing(easer::functions::Back::ease_out)
-//         .animate_to(150.0);
-// }"#}
-//                     }
-//                 }
-//             }
-//         }
-// }
+// Start a staggered animation
+for (i, motion) in motion_values.read().iter().enumerate() {
+    // Staggered animation with delay based on index
+    motion.tween()
+        .duration(Duration::from_millis(600))
+        .easing(easer::functions::Back::ease_out)
+        .animate_to(150.0);
+}"#}
+                    }
+                }
+            }
+        }
+}

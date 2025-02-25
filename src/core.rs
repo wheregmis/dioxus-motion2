@@ -26,6 +26,8 @@ pub struct AnimationEngine<T: Animatable> {
     animation: Option<Box<dyn Animation<Value = T>>>,
     /// Whether the engine is active
     is_active: bool,
+    /// Callback queue for animation completion
+    callbacks: Arc<RwLock<Vec<Box<dyn FnOnce() + Send>>>>,
 }
 
 impl<T: Animatable> AnimationEngine<T> {
@@ -36,6 +38,7 @@ impl<T: Animatable> AnimationEngine<T> {
             velocity: T::zero(),
             animation: None,
             is_active: false,
+            callbacks: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
@@ -136,6 +139,13 @@ impl<T: Animatable> AnimationEngine<T> {
         self.animation = Some(Box::new(boxed_staggered));
         self.is_active = true;
     }
+
+    /// Add a completion callback
+    pub fn add_completion_callback<F: FnOnce() + Send + 'static>(&mut self, callback: F) {
+        if let Ok(mut callbacks) = self.callbacks.write() {
+            callbacks.push(Box::new(callback));
+        }
+    }
 }
 
 /// A reactive motion value that can be animated
@@ -143,29 +153,16 @@ impl<T: Animatable> AnimationEngine<T> {
 /// This is the main type that users interact with when creating animations.
 /// It provides a fluent API for configuring and starting different animation types.
 
+#[derive(Clone, Copy)]
 pub struct MotionValue<T: Animatable> {
     /// The underlying animation engine
     engine: Signal<AnimationEngine<T>>,
-    /// Callback queue for animation completion
-    callbacks: Arc<RwLock<Vec<Box<dyn FnOnce() + Send>>>>,
-}
-
-impl<T: Animatable> Clone for MotionValue<T> {
-    fn clone(&self) -> Self {
-        Self {
-            engine: self.engine,
-            callbacks: self.callbacks.clone(),
-        }
-    }
 }
 
 impl<T: Animatable> MotionValue<T> {
     /// Create a new motion value from an animation engine signal
     pub fn new(engine: Signal<AnimationEngine<T>>) -> Self {
-        Self {
-            engine,
-            callbacks: Arc::new(RwLock::new(Vec::new())),
-        }
+        Self { engine }
     }
 
     /// Get the current value
@@ -208,13 +205,6 @@ impl<T: Animatable> MotionValue<T> {
     /// Check if there's an active animation
     pub fn is_animating(&self) -> bool {
         self.engine.read().is_active()
-    }
-
-    /// Add a completion callback
-    fn add_completion_callback<F: FnOnce() + Send + 'static>(&self, callback: F) {
-        if let Ok(mut callbacks) = self.callbacks.write() {
-            callbacks.push(Box::new(callback));
-        }
     }
 }
 
@@ -269,7 +259,7 @@ impl<T: Animatable> SpringBuilder<T> {
     pub fn animate_to(mut self, target: T) -> MotionValue<T> {
         // Apply the completion callback if provided
         if let Some(callback) = self.completion_callback {
-            self.motion.add_completion_callback(callback);
+            self.motion.engine.write().add_completion_callback(callback);
         }
 
         self.motion.engine.write().spring_to(target, self.spring);
@@ -316,7 +306,7 @@ impl<T: Animatable> TweenBuilder<T> {
     pub fn animate_to(mut self, target: T) -> MotionValue<T> {
         // Apply the completion callback if provided
         if let Some(callback) = self.completion_callback {
-            self.motion.add_completion_callback(callback);
+            self.motion.engine.write().add_completion_callback(callback);
         }
 
         self.motion.engine.write().tween_to(target, self.tween);
@@ -391,7 +381,7 @@ impl<T: Animatable> KeyframeBuilder<T> {
 
         // Apply the completion callback if provided
         if let Some(callback) = self.completion_callback {
-            self.motion.add_completion_callback(callback);
+            self.motion.engine.write().add_completion_callback(callback);
         }
 
         // Start the animation

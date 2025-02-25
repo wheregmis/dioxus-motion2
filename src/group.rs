@@ -93,13 +93,27 @@ impl<T: Animatable> AnimationGroup<T> {
         self.timing = self.timing.with_delay(delay);
         self
     }
+
+    // Add this method to start the animation
+    pub fn start(mut self) {
+        // Initialize and start all animations in the group
+        for animation in &mut self.animations {
+            animation.reset();
+        }
+        self.is_active = true;
+    }
+
+    // Add this method to convert into a boxed Animation trait object
+    pub fn into_animation(self) -> Box<dyn Animation<Value = T> + Send + 'static> {
+        Box::new(self)
+    }
 }
 
 impl<T: Animatable> Animation for AnimationGroup<T> {
     type Value = T;
 
     fn update(&mut self, dt: f32) -> (AnimationState, Self::Value, Self::Value) {
-        if !self.is_active {
+        if (!self.is_active) {
             return (AnimationState::Completed, self.current, T::zero());
         }
 
