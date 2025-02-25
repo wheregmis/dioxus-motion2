@@ -47,8 +47,8 @@ pub fn AnimationExamples() -> Element {
         // // Sequence animation example
         // SequenceExample {}
 
-            // Staggered animation example
-            // StaggeredExample {}
+        //    Staggered animation example
+            StaggeredExample {}
         }
     }
 }
@@ -59,7 +59,7 @@ fn SpringExample() -> Element {
     // Create a spring-animated value starting at 0.0
     let position = use_motion(0.0);
 
-    let start_animation = move |_| {
+    let start_animation = move |_: Event<MouseData>| {
         // Configure and start a spring animation
         position
             .spring()
@@ -141,7 +141,6 @@ fn TweenExample() -> Element {
     // Button click handlers for animation
 
     let start_animation = move |_| {
-        // Configure and start a tween animation
         opacity
             .tween()
             .duration(Duration::from_millis(800))
@@ -590,7 +589,7 @@ color.tween()
 //         }
 // }
 
-// Sequence animation example
+// // Sequence animation example
 // #[component]
 // fn SequenceExample() -> Element {
 //     // Create a motion value for position
@@ -603,30 +602,33 @@ color.tween()
 //     let start_animation = move |_| {
 //         is_animating.set(true);
 
-//         // Create and start an animation sequence
+//         // Create a spring animation for the first step
+//         let spring1 = position
+//             .spring()
+//             .stiffness(180.0)
+//             .damping(12.0)
+//             .animate_to(150.0);
+
+//         // Create a tween animation for the second step
+//         let tween = position
+//             .tween()
+//             .duration(Duration::from_millis(500))
+//             .easing(easer::functions::Bounce::ease_out)
+//             .animate_to(50.0);
+
+//         // Create a spring animation for the third step
+//         let spring2 = position
+//             .spring()
+//             .stiffness(200.0)
+//             .damping(10.0)
+//             .animate_to(200.0);
+
+//         // Create and start the sequence with the animations
 //         let seq = sequence::<f32>()
-//             .then(
-//                 position
-//                     .spring()
-//                     .stiffness(180.0)
-//                     .damping(12.0)
-//                     .animate_to(150.0),
-//             )
-//             .then(
-//                 position
-//                     .tween()
-//                     .duration(Duration::from_millis(500))
-//                     .easing(easer::functions::Bounce::ease_out)
-//                     .animate_to(50.0),
-//             )
-//             .then(
-//                 position
-//                     .spring()
-//                     .stiffness(200.0)
-//                     .damping(10.0)
-//                     .animate_to(200.0),
-//             )
-//             .on_complete(|| {
+//             .then(spring1.into_animation())
+//             .then(tween.into_animation())
+//             .then(spring2.into_animation())
+//             .with_on_complete(|| {
 //                 is_animating.set(false);
 //                 println!("Sequence completed!");
 //             })
@@ -703,31 +705,26 @@ color.tween()
 //         }
 // }
 
-// Staggered animation example
 #[component]
 fn StaggeredExample() -> Element {
     // Create multiple motion values for staggered animation
     let items = (0..5).collect::<Vec<_>>();
-    let motion_values = use_signal(|| items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>());
+    let motion_values = Signal::new(items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>());
 
-    // Button click handler for staggered animation
-    let start_animation = move |_| {
-        for (i, motion) in motion_values.iter().enumerate() {
-            // Start with a staggered delay
-            let _delay = Duration::from_millis(i as u64 * 500);
+    let start_animation = move |_: Event<MouseData>| {
+        for (i, motion) in motion_values.peek().iter().enumerate() {
+            let delay = Duration::from_millis(i as u64 * 1000);
 
             motion
                 .tween()
-                .duration(Duration::from_millis(600))
+                .duration(delay)
                 .easing(easer::functions::Back::ease_out)
                 .animate_to(150.0);
-
-            // We would use staggered animation here, but we're simulating it with delays
         }
     };
 
-    let reset_animation = move |_| {
-        for motion in motion_values.iter() {
+    let reset_animation = move |_: Event<MouseData>| {
+        for motion in motion_values.peek().iter() {
             motion
                 .tween()
                 .duration(Duration::from_millis(300))
@@ -742,15 +739,17 @@ fn StaggeredExample() -> Element {
 
                 div { class: "my-6 relative min-h-[200px]",
                     // Render items with staggered animations
-                    {items.iter().enumerate().map(|(i, item)| {
+                    {items.iter().enumerate().map(|(i, _)| {
+                        // Get the position from the motion value
                         let position = motion_values.read()[i].get();
 
+                        // Apply different vertical position for each box
                         rsx! {
                             div {
                                 key: "{i}",
-                                class: "mb-2 w-16 h-10 bg-teal-500 rounded shadow-md flex items-center justify-center text-white",
-                                style: "transform: translateX({position}px);",
-                                "Item {item}"
+                                class: "mb-4 w-16 h-16 bg-teal-500 rounded shadow-md flex items-center justify-center text-white",
+                                style: "transform: translateX({position}px); margin-top: {i * 20}px;",
+                                "Box {i}"
                             }
                         }
                     })}
@@ -771,7 +770,7 @@ fn StaggeredExample() -> Element {
 
                 pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
                     code {
-    {r#"// Create multiple motion values
+    {                    r#"// Create multiple motion values
 let items = (0..5).collect::<Vec<_>>();
 let motion_values = use_signal(|| {
     items.iter().map(|_| use_motion(0.0)).collect::<Vec<_>>()
