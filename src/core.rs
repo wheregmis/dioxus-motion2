@@ -132,7 +132,7 @@ impl<T: Animatable> AnimationEngine<T> {
     ) {
         // Convert the generic StaggeredAnimation to a BoxedStaggeredAnimation
         // which implements Animation<Value = T> and can be stored in a Box<dyn Animation>
-        let boxed_staggered = StaggeredAnimation::from(staggered);
+        let boxed_staggered = staggered;
         self.animation = Some(Box::new(boxed_staggered));
         self.is_active = true;
     }
@@ -152,7 +152,7 @@ pub struct MotionValue<T: Animatable> {
 impl<T: Animatable> Clone for MotionValue<T> {
     fn clone(&self) -> Self {
         Self {
-            engine: self.engine.clone(),
+            engine: self.engine,
             callbacks: self.callbacks.clone(),
         }
     }
@@ -213,16 +213,6 @@ impl<T: Animatable> MotionValue<T> {
     fn add_completion_callback<F: FnOnce() + Send + 'static>(&self, callback: F) {
         if let Ok(mut callbacks) = self.callbacks.write() {
             callbacks.push(Box::new(callback));
-        }
-    }
-
-    /// Trigger completion callbacks
-    fn trigger_completion(&self) {
-        if let Ok(mut callbacks) = self.callbacks.write() {
-            let taken_callbacks = std::mem::take(&mut *callbacks);
-            for callback in taken_callbacks {
-                callback();
-            }
         }
     }
 }

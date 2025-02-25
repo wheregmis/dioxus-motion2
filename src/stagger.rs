@@ -4,11 +4,10 @@
 //! creating a cascade or wave effect.
 
 use instant::Duration;
-use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
 use crate::animatable::Animatable;
-use crate::animation::{Animation, AnimationState, AnimationTiming};
+use crate::animation::{Animation, AnimationState};
 
 /// Type alias for the FnMut callback
 pub type MutCallback = Arc<Mutex<dyn FnMut() + Send>>;
@@ -23,7 +22,7 @@ pub struct StaggerItem<T: Animatable, A: Animation<Value = T>> {
     elapsed_delay: Duration,
     /// Whether this animation has started
     started: bool,
-    /// Item key or index (for identification)
+    /// Key for this animation
     key: usize,
 }
 
@@ -43,9 +42,8 @@ pub struct StaggeredAnimation<T: Animatable, A: Animation<Value = T>> {
     is_active: bool,
 }
 
-impl<T: Animatable, A: Animation<Value = T>> StaggeredAnimation<T, A> {
-    /// Create a new staggered animation
-    pub fn new() -> Self {
+impl<T: Animatable, A: Animation<Value = T>> Default for StaggeredAnimation<T, A> {
+    fn default() -> Self {
         Self {
             items: Vec::new(),
             base_delay: Duration::from_millis(50),
@@ -54,6 +52,13 @@ impl<T: Animatable, A: Animation<Value = T>> StaggeredAnimation<T, A> {
             on_complete: None,
             is_active: false,
         }
+    }
+}
+
+impl<T: Animatable, A: Animation<Value = T>> StaggeredAnimation<T, A> {
+    /// Create a new staggered animation
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Add an animation with a custom delay
@@ -217,24 +222,6 @@ pub struct BoxedStaggeredAnimation<T: Animatable> {
     is_complete: bool,
     /// Completion callback from the original staggered animation
     on_complete: Option<MutCallback>,
-}
-
-impl<T: Animatable> BoxedStaggeredAnimation<T> {
-    pub fn new(value: T) -> Self {
-        Self {
-            current_value: value,
-            is_complete: false,
-            on_complete: None,
-        }
-    }
-
-    pub fn from_staggered<A: Animation<Value = T>>(staggered: StaggeredAnimation<T, A>) -> Self {
-        Self {
-            current_value: staggered.current,
-            is_complete: false,
-            on_complete: staggered.on_complete,
-        }
-    }
 }
 
 impl<T: Animatable> Animation for BoxedStaggeredAnimation<T> {

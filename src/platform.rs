@@ -85,6 +85,3 @@ impl TimeProvider for MotionTime {
         })
     }
 }
-
-/// Type alias for the default time provider
-pub type Time = MotionTime;

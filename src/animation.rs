@@ -42,9 +42,6 @@ pub trait Animation: Send + 'static {
     fn is_active(&self) -> bool;
 }
 
-/// A callback that is executed when an animation completes
-pub type CompletionCallback = Arc<Mutex<Option<Box<dyn FnOnce() + Send>>>>;
-
 /// Animation loop mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoopMode {
@@ -157,10 +154,10 @@ impl AnimationTiming {
         if dt_duration >= self.delay {
             self.delay = instant::Duration::ZERO;
             self.delay_elapsed = true;
-            return true;
+            true
         } else {
             self.delay -= dt_duration;
-            return false;
+            false
         }
     }
 

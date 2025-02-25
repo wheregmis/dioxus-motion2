@@ -109,27 +109,27 @@ impl<T: Animatable> KeyframeAnimation<T> {
     }
 
     /// Add a keyframe with a cubic ease-in easing
-    pub fn add_keyframe_ease_in(mut self, position: f32, value: T) -> Self {
+    pub fn add_keyframe_ease_in(self, position: f32, value: T) -> Self {
         self.add_keyframe_with_easing(position, value, easer::functions::Cubic::ease_in)
     }
 
     /// Add a keyframe with a cubic ease-out easing
-    pub fn add_keyframe_ease_out(mut self, position: f32, value: T) -> Self {
+    pub fn add_keyframe_ease_out(self, position: f32, value: T) -> Self {
         self.add_keyframe_with_easing(position, value, easer::functions::Cubic::ease_out)
     }
 
     /// Add a keyframe with a cubic ease-in-out easing
-    pub fn add_keyframe_ease_in_out(mut self, position: f32, value: T) -> Self {
+    pub fn add_keyframe_ease_in_out(self, position: f32, value: T) -> Self {
         self.add_keyframe_with_easing(position, value, easer::functions::Cubic::ease_in_out)
     }
 
     /// Add a keyframe with a bounce ease-out easing
-    pub fn add_keyframe_bounce(mut self, position: f32, value: T) -> Self {
+    pub fn add_keyframe_bounce(self, position: f32, value: T) -> Self {
         self.add_keyframe_with_easing(position, value, easer::functions::Bounce::ease_out)
     }
 
     /// Add a keyframe with an elastic ease-out easing
-    pub fn add_keyframe_elastic(mut self, position: f32, value: T) -> Self {
+    pub fn add_keyframe_elastic(self, position: f32, value: T) -> Self {
         self.add_keyframe_with_easing(position, value, easer::functions::Elastic::ease_out)
     }
 
