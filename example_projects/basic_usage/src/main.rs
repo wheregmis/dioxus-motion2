@@ -1,12 +1,14 @@
 use std::f32::consts::PI;
 
 use dioxus::prelude::*;
+use dioxus_logger::tracing::Level;
 use dioxus_motion2::prelude::*;
 use easer::functions::Easing;
 
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
+    dioxus_logger::init(Level::DEBUG).expect("failed to init logger");
     dioxus::launch(App);
 }
 
@@ -41,11 +43,11 @@ pub fn AnimationExamples() -> Element {
             // Color animation example
             ColorExample {}
 
-        // // Group animation example
-        // GroupExample {}
+        // Group animation example
+        GroupExample {}
 
-        // // Sequence animation example
-        // SequenceExample {}
+        // Sequence animation example
+        SequenceExample {}
 
         //    Staggered animation example
             StaggeredExample {}
@@ -451,259 +453,263 @@ color.tween()
     }
 }
 
-// /// Group animation example
-// #[component]
-// fn GroupExample() -> Element {
-//     let x_position = use_motion(0.0);
-//     let y_position = use_motion(0.0);
-//     let rotation = use_motion(0.0);
-//     let scale = use_motion(1.0);
+/// Sequence animation example
+#[component]
+fn SequenceExample() -> Element {
+    // Create a motion value for position
+    let position = use_motion(0.0);
 
-//     let is_animating = use_signal(|| false);
+    // Button click handler for sequence animation
+    let start_animation = move |_| {
+        position
+            .sequence()
+            .then(
+                position
+                    .spring()
+                    .stiffness(180.0)
+                    .damping(12.0)
+                    .to(150.0)
+                    .build(),
+            )
+            .then(
+                position
+                    .spring()
+                    .stiffness(180.0)
+                    .damping(12.0)
+                    .to(50.0)
+                    .build(),
+            )
+            .then(
+                position
+                    .spring()
+                    .stiffness(200.0)
+                    .damping(10.0)
+                    .to(200.0)
+                    .build(),
+            )
+            .on_complete(|| {
+                println!("Sequence completed!");
+            })
+            .start();
+    };
 
-//     let start_animation = move |_| {
-//         is_animating.set(true);
+    let reset_animation = move |_| {
+        position.tween().animate_to(0.0);
+    };
 
-//         // Create an animation group
-//         let mut group_animation = group::<f64>().on_complete(move || {
-//             is_animating.set(false);
-//             println!("Group animation completed!");
-//         });
+    // Generate the style based on the animated value
+    let box_style = use_memo(move || format!("transform: translateX({}px);", position.get()));
 
-//         // Convert each animation to a proper Animation type using into_animation()
-//         group_animation = group_animation.add_animation(
-//             x_position
-//                 .spring()
-//                 .stiffness(180.0)
-//                 .damping(12.0)
-//                 .animate_to(150.0),
-//         );
+    rsx! {
+            section { class: "mb-12 border-b pb-8",
+                h2 { class: "text-2xl font-semibold mb-4", "Sequence Animation" }
+                p { class: "mb-4", "Sequence animations let you chain multiple animations to run one after another." }
 
-//         group_animation = group_animation.add_animation(
-//             y_position
-//                 .spring()
-//                 .stiffness(120.0)
-//                 .damping(8.0)
-//                 .animate_to(-30.0),
-//         );
+                div { class: "my-6 relative h-24",
+                    div {
+                        class: "absolute top-0 left-0 w-16 h-16 bg-amber-500 rounded shadow-md flex items-center justify-center text-white",
+                        style: "{box_style.read()}",
+                        "Box"
+                    }
+                }
 
-//         group_animation = group_animation.add_animation(
-//             rotation
-//                 .tween()
-//                 .duration(Duration::from_millis(800))
-//                 .easing(easer::functions::Back::ease_out)
-//                 .animate_to(PI / 4.0),
-//         );
+                div { class: "flex gap-4",
+                    button {
+                        class: "px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded",
+                        onclick: start_animation,
+                        "Start Sequence"
+                    }
+                    button {
+                        class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
+                        onclick: reset_animation,
+                        "Reset"
+                    }
+                }
 
-//         group_animation = group_animation.add_animation(
-//             scale
-//                 .spring()
-//                 .stiffness(200.0)
-//                 .damping(10.0)
-//                 .animate_to(1.3),
-//         );
+                pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
+                    code {
+    {r#"// Create a motion value
+let position = use_motion(0.0);
 
-//         group_animation.start();
-//     };
+// Create and start an animation sequence
+position
+    .sequence()
+    .then(
+        position.spring()
+            .stiffness(180.0)
+            .damping(12.0)
+            .to(150.0)
+            .build()
+    )
+    .then(
+        position.tween()
+            .duration(Duration::from_millis(500))
+            .easing(easer::functions::Bounce::ease_out)
+            .to(50.0)
+            .build()
+    )
+    .then(
+        position.spring()
+            .stiffness(200.0)
+            .damping(10.0)
+            .to(200.0)
+            .build()
+    )
+    .on_complete(|| {
+        println!("Sequence completed!");
+    })
+    .start();"#}
+                    }
+                }
+            }
+        }
+}
 
-//     let reset_animation = move |_| {
-//         x_position.tween().animate_to(0.0);
-//         y_position.tween().animate_to(0.0);
-//         rotation.tween().animate_to(0.0);
-//         scale.tween().animate_to(1.0);
-//         is_animating.set(false);
-//     };
+/// Group animation example
+#[component]
+fn GroupExample() -> Element {
+    let x_position = use_motion(0.0);
+    let y_position = use_motion(0.0);
+    let rotation = use_motion(0.0);
+    let scale = use_motion(1.0);
 
-//     // Generate the style based on all animated values
-//     let box_style = use_memo(move || {
-//         format!(
-//             "transform: translateX({}px) translateY({}px) rotate({}rad) scale({});",
-//             x_position.get(),
-//             y_position.get(),
-//             rotation.get(),
-//             scale.get()
-//         )
-//     });
+    let is_animating = use_signal(|| false);
 
-//     rsx! {
-//             section { class: "mb-12 border-b pb-8",
-//                 h2 { class: "text-2xl font-semibold mb-4", "Group Animation" }
-//                 p { class: "mb-4", "Group animations let you run multiple animations together with synchronized timing." }
+    let start_animation = move |_| {
+        is_animating.set(true);
 
-//                 div { class: "my-6 relative h-32",
-//                     div {
-//                         class: "absolute top-8 left-0 w-16 h-16 bg-pink-500 rounded shadow-md flex items-center justify-center text-white",
-//                         style: "{box_style.read()}",
-//                         "Box"
-//                     }
-//                 }
+        // Create an animation group
+        group::<f64>()
+            .add_animation(
+                x_position
+                    .spring()
+                    .stiffness(180.0)
+                    .damping(12.0)
+                    .to(150.0)
+                    .build(),
+            )
+            .add_animation(
+                y_position
+                    .spring()
+                    .stiffness(120.0)
+                    .damping(8.0)
+                    .to(-30.0)
+                    .build(),
+            )
+            .add_animation(
+                rotation
+                    .tween() // Changed from spring to tween to match the example code
+                    .duration(Duration::from_millis(800))
+                    .easing(easer::functions::Back::ease_out)
+                    .to(PI / 4.0)
+                    .build(),
+            )
+            .add_animation(
+                scale
+                    .spring()
+                    .stiffness(200.0)
+                    .damping(10.0)
+                    .to(1.3)
+                    .build(),
+            )
+            .on_complete(move || {
+                is_animating.set(false);
+                println!("Group animation completed!");
+            })
+            .start();
+    };
 
-//                 div { class: "flex gap-4",
-//                     button {
-//                         class: "px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded",
-//                         onclick: start_animation,
-//                         disabled: *is_animating.read(),
-//                         "Start Group"
-//                     }
-//                     button {
-//                         class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
-//                         onclick: reset_animation,
-//                         "Reset"
-//                     }
-//                 }
+    let reset_animation = move |_| {
+        x_position.tween().animate_to(0.0);
+        y_position.tween().animate_to(0.0);
+        rotation.tween().animate_to(0.0);
+        scale.tween().animate_to(1.0);
+    };
 
-//                 pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
-//                     code {
-//     {r#"// Create motion values
-// let x_position = use_motion(0.0);
-// let y_position = use_motion(0.0);
-// let rotation = use_motion(0.0);
-// let scale = use_motion(1.0);
+    // Generate the style based on the animated values
+    let box_style = use_memo(move || {
+        format!(
+            "transform: translateX({}px) translateY({}px) rotate({}rad) scale({});",
+            x_position.get(),
+            y_position.get(),
+            rotation.get(),
+            scale.get()
+        )
+    });
 
-// // Create and start an animation group
-// let mut group_animation = group::<f32>()
-//     .on_complete(|| { println!("Group completed!"); });
+    rsx! {
+            section { class: "mb-12 border-b pb-8",
+                h2 { class: "text-2xl font-semibold mb-4", "Group Animation" }
+                p { class: "mb-4", "Group animations let you run multiple animations in parallel." }
 
-// // Add animations to the group
-// group_animation = group_animation.add_animation(
-//     x_position.spring()
-//         .stiffness(180.0)
-//         .damping(12.0)
-//         .animate_to(150.0)
-// );
+                div { class: "my-6 relative h-24",
+                    div {
+                        class: "absolute top-0 left-0 w-16 h-16 bg-blue-500 rounded shadow-md flex items-center justify-center text-white",
+                        style: "{box_style.read()}",
+                        "Box"
+                    }
+                }
 
-// group_animation = group_animation.add_animation(
-//     y_position.spring()
-//         .stiffness(120.0)
-//         .damping(8.0)
-//         .animate_to(-30.0)
-// );
+                div { class: "flex gap-4",
+                    button {
+                        class: "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded",
+                        onclick: start_animation,
+                        "Start Group"
+                    }
+                    button {
+                        class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
+                        onclick: reset_animation,
+                        "Reset"
+                    }
+                }
 
-// // Add more animations...
+                pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
+                    code {
+    {r#"// Create motion values
+let x_position = use_motion(0.0);
+let y_position = use_motion(0.0);
+let rotation = use_motion(0.0);
+let scale = use_motion(1.0);
 
-// // Start the group
-// group_animation.start();"#}
-//                     }
-//                 }
-//             }
-//         }
-// }
-
-// // Sequence animation example
-// #[component]
-// fn SequenceExample() -> Element {
-//     // Create a motion value for position
-//     let position = use_motion(0.0);
-
-//     // Active state tracker
-//     let is_animating = use_signal(|| false);
-
-//     // Button click handler for sequence animation
-//     let start_animation = move |_| {
-//         is_animating.set(true);
-
-//         // Create a spring animation for the first step
-//         let spring1 = position
-//             .spring()
-//             .stiffness(180.0)
-//             .damping(12.0)
-//             .animate_to(150.0);
-
-//         // Create a tween animation for the second step
-//         let tween = position
-//             .tween()
-//             .duration(Duration::from_millis(500))
-//             .easing(easer::functions::Bounce::ease_out)
-//             .animate_to(50.0);
-
-//         // Create a spring animation for the third step
-//         let spring2 = position
-//             .spring()
-//             .stiffness(200.0)
-//             .damping(10.0)
-//             .animate_to(200.0);
-
-//         // Create and start the sequence with the animations
-//         let seq = sequence::<f32>()
-//             .then(spring1.into_animation())
-//             .then(tween.into_animation())
-//             .then(spring2.into_animation())
-//             .with_on_complete(|| {
-//                 is_animating.set(false);
-//                 println!("Sequence completed!");
-//             })
-//             .start();
-//     };
-
-//     let reset_animation = move |_| {
-//         position.tween().animate_to(0.0);
-//         is_animating.set(false);
-//     };
-
-//     // Generate the style based on the animated value
-//     let box_style = use_memo(move || format!("transform: translateX({}px);", position.get()));
-
-//     rsx! {
-//             section { class: "mb-12 border-b pb-8",
-//                 h2 { class: "text-2xl font-semibold mb-4", "Sequence Animation" }
-//                 p { class: "mb-4", "Sequence animations let you chain multiple animations to run one after another." }
-
-//                 div { class: "my-6 relative h-24",
-//                     div {
-//                         class: "absolute top-0 left-0 w-16 h-16 bg-amber-500 rounded shadow-md flex items-center justify-center text-white",
-//                         style: "{box_style.read()}",
-//                         "Box"
-//                     }
-//                 }
-
-//                 div { class: "flex gap-4",
-//                     button {
-//                         class: "px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded",
-//                         onclick: start_animation,
-//                         disabled: *is_animating.read(),
-//                         "Start Sequence"
-//                     }
-//                     button {
-//                         class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
-//                         onclick: reset_animation,
-//                         "Reset"
-//                     }
-//                 }
-
-//                 pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
-//                     code {
-//     {r#"// Create a motion value
-// let position = use_motion(0.0);
-
-// // Create and start an animation sequence
-// let seq = sequence::<f32>()
-//     .then(
-//         position.spring()
-//             .stiffness(180.0)
-//             .damping(12.0)
-//             .animate_to(150.0)
-//     )
-//     .then(
-//         position.tween()
-//             .duration(Duration::from_millis(500))
-//             .easing(easer::functions::Bounce::ease_out)
-//             .animate_to(50.0)
-//     )
-//     .then(
-//         position.spring()
-//             .stiffness(200.0)
-//             .damping(10.0)
-//             .animate_to(200.0)
-//     )
-//     .on_complete(|| {
-//         println!("Sequence completed!");
-//     })
-//     .start();"#}
-//                     }
-//                 }
-//             }
-//         }
-// }
+// Create and start an animation group
+group::<f64>()
+    .add_animation(
+        x_position.spring()
+            .stiffness(180.0)
+            .damping(12.0)
+            .to(150.0)
+            .build()
+    )
+    .add_animation(
+        y_position.spring()
+            .stiffness(120.0)
+            .damping(8.0)
+            .to(-30.0)
+            .build()
+    )
+    .add_animation(
+        rotation.tween()
+            .duration(Duration::from_millis(800))
+            .easing(easer::functions::Back::ease_out)
+            .to(PI / 4.0)
+            .build()
+    )
+    .add_animation(
+        scale.spring()
+            .stiffness(200.0)
+            .damping(10.0)
+            .to(1.3)
+            .build()
+    )
+    .on_complete(|| {
+        println!("Group completed!");
+    })
+    .start();"#}
+                    }
+                }
+            }
+        }
+}
 
 #[component]
 fn StaggeredExample() -> Element {
@@ -748,7 +754,7 @@ fn StaggeredExample() -> Element {
                             div {
                                 key: "{i}",
                                 class: "mb-4 w-16 h-16 bg-teal-500 rounded shadow-md flex items-center justify-center text-white",
-                                style: "transform: translateX({position}px); margin-top: {i * 20}px;",
+                                style: "transform: translateX({position}px);",
                                 "Box {i}"
                             }
                         }

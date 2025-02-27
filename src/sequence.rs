@@ -5,11 +5,12 @@
 
 use std::sync::{Arc, Mutex};
 
+use tracing::{debug, warn};
+
 use crate::animatable::Animatable;
 use crate::animation::{Animation, AnimationState};
 
 /// A step in an animation sequence
-
 pub struct AnimationStep<T: Animatable> {
     /// The animation for this step
     animation: Box<dyn Animation<Value = T>>,
@@ -35,9 +36,8 @@ pub struct AnimationSequence<T: Animatable> {
     pub on_complete: Option<Arc<Mutex<dyn FnMut() + Send>>>,
 }
 
-impl<T: Animatable> AnimationSequence<T> {
-    /// Create a new empty animation sequence
-    pub fn new() -> Self {
+impl<T: Animatable> Default for AnimationSequence<T> {
+    fn default() -> Self {
         Self {
             steps: Vec::new(),
             current_step: 0,
@@ -47,35 +47,48 @@ impl<T: Animatable> AnimationSequence<T> {
             on_complete: None,
         }
     }
+}
+
+impl<T: Animatable> AnimationSequence<T> {
+    /// Create a new empty animation sequence
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Add an animation to the sequence
-    pub fn then<A: Animation<Value = T> + 'static>(mut self, animation: A) -> Self {
+    pub fn then<A: Animation<Value = T> + Send + 'static>(mut self, animation: A) -> Self {
         self.steps.push(AnimationStep {
             animation: Box::new(animation),
             started: false,
             completed: false,
         });
-
-        self.is_active = true;
         self
     }
 
     /// Set a completion callback
-    pub fn with_on_complete<F>(mut self, f: F) -> Self
-    where
-        F: FnMut() + Send + 'static,
-    {
-        self.on_complete = Some(Arc::new(Mutex::new(f)));
+    pub fn on_complete<F: FnMut() + Send + 'static>(mut self, callback: F) -> Self {
+        self.on_complete = Some(Arc::new(Mutex::new(callback)));
         self
     }
 
-    /// Start the sequence
+    /// Start the animation sequence
     pub fn start(mut self) -> Self {
         if !self.steps.is_empty() {
-            self.steps[0].started = true;
             self.is_active = true;
+            self.current_step = 0;
+            // Mark all steps as not completed
+            for step in &mut self.steps {
+                step.completed = false;
+            }
+        } else {
+            warn!("Attempting to start empty animation sequence");
         }
         self
+    }
+
+    /// Build an animation for use with a MotionValue
+    pub fn build(self) -> Box<dyn Animation<Value = T> + Send + 'static> {
+        Box::new(self)
     }
 }
 
@@ -84,11 +97,13 @@ impl<T: Animatable> Animation for AnimationSequence<T> {
 
     fn update(&mut self, dt: f32) -> (AnimationState, Self::Value, Self::Value) {
         if !self.is_active {
+            debug!("Sequence not active");
             return (AnimationState::Completed, self.current, T::zero());
         }
 
         // Check if we have any steps
         if self.steps.is_empty() {
+            debug!("Sequence has no steps");
             self.is_active = false;
             return (AnimationState::Completed, self.current, T::zero());
         }
@@ -97,8 +112,11 @@ impl<T: Animatable> Animation for AnimationSequence<T> {
         let current_step = &mut self.steps[self.current_step];
 
         if !current_step.started {
+            debug!("Starting step {}", self.current_step);
             current_step.started = true;
         }
+
+        debug!("Updating step {} with dt: {}", self.current_step, dt);
 
         let (state, value, velocity) = current_step.animation.update(dt);
 
@@ -107,19 +125,26 @@ impl<T: Animatable> Animation for AnimationSequence<T> {
 
         // Check if current step completed
         if state == AnimationState::Completed {
+            debug!("Step {} completed", self.current_step);
             current_step.completed = true;
 
             // Move to next step if available
             if self.current_step < self.steps.len() - 1 {
+                debug!(
+                    "Moving to next step: {} -> {}",
+                    self.current_step,
+                    self.current_step + 1
+                );
                 self.current_step += 1;
                 self.steps[self.current_step].started = true;
                 return (AnimationState::Active, self.current, self.velocity);
             } else {
-                // All steps completed
+                debug!("All steps completed");
                 self.is_active = false;
 
                 // Execute completion callback
                 if let Some(on_complete) = &self.on_complete {
+                    debug!("Executing completion callback");
                     if let Ok(mut callback) = on_complete.lock() {
                         callback();
                     }
@@ -127,6 +152,8 @@ impl<T: Animatable> Animation for AnimationSequence<T> {
                 return (AnimationState::Completed, self.current, T::zero());
             }
         }
+
+        debug!("Step {} ", self.current_step);
 
         (AnimationState::Active, self.current, self.velocity)
     }

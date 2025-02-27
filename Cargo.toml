@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tracing = "0.1.41"
 easer = "0.3.0"
 futures-util = { version = "0.3.31", default-features = false }
 instant = { version = "0.1.13", optional = true }

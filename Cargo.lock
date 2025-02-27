@@ -223,6 +223,7 @@ name = "basic_usage"
 version = "0.1.0"
 dependencies = [
  "dioxus",
+ "dioxus-logger",
  "dioxus-motion2",
  "easer",
  "instant",
@@ -1150,6 +1151,7 @@ dependencies = [
  "once_cell",
  "ordered-float",
  "tokio",
+ "tracing",
  "wasm-bindgen",
  "web-sys",
 ]

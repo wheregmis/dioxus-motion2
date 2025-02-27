@@ -5,14 +5,14 @@
 
 use dioxus::prelude::*;
 use instant::Duration;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use crate::animatable::Animatable;
 use crate::animation::{Animation, AnimationState};
 use crate::group::AnimationGroup;
 use crate::keyframe::KeyframeAnimation;
 use crate::sequence::AnimationSequence;
-use crate::spring::Spring;
+use crate::spring::{Spring, SpringAnimation};
 use crate::stagger::StaggeredAnimation;
 use crate::tween::Tween;
 
@@ -27,7 +27,7 @@ pub struct AnimationEngine<T: Animatable> {
     /// Whether the engine is active
     is_active: bool,
     /// Callback queue for animation completion
-    callbacks: Arc<RwLock<Vec<Box<dyn FnOnce() + Send>>>>,
+    callbacks: Arc<Mutex<Vec<Box<dyn FnOnce() + Send>>>>,
 }
 
 impl<T: Animatable> AnimationEngine<T> {
@@ -38,7 +38,7 @@ impl<T: Animatable> AnimationEngine<T> {
             velocity: T::zero(),
             animation: None,
             is_active: false,
-            callbacks: Arc::new(RwLock::new(Vec::new())),
+            callbacks: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -116,18 +116,6 @@ impl<T: Animatable> AnimationEngine<T> {
         self.is_active = true;
     }
 
-    /// Apply an animation group
-    pub fn apply_group(&mut self, group: AnimationGroup<T>) {
-        self.animation = Some(Box::new(group));
-        self.is_active = true;
-    }
-
-    /// Apply an animation sequence
-    pub fn apply_sequence(&mut self, sequence: AnimationSequence<T>) {
-        self.animation = Some(Box::new(sequence));
-        self.is_active = true;
-    }
-
     /// Apply a staggered animation
     pub fn apply_staggered<A: Animation<Value = T>>(
         &mut self,
@@ -142,9 +130,20 @@ impl<T: Animatable> AnimationEngine<T> {
 
     /// Add a completion callback
     pub fn add_completion_callback<F: FnOnce() + Send + 'static>(&mut self, callback: F) {
-        if let Ok(mut callbacks) = self.callbacks.write() {
+        if let Ok(mut callbacks) = self.callbacks.lock() {
             callbacks.push(Box::new(callback));
         }
+    }
+
+    pub fn apply_group(&mut self, group: AnimationGroup<T>) {
+        self.animation = Some(Box::new(group));
+        self.is_active = true;
+    }
+
+    /// Apply an animation sequence
+    pub fn apply_sequence(&mut self, sequence: AnimationSequence<T>) {
+        self.animation = Some(Box::new(sequence));
+        self.is_active = true;
     }
 }
 
@@ -177,17 +176,23 @@ impl<T: Animatable> MotionValue<T> {
 
     /// Create a spring animation builder
     pub fn spring(&self) -> SpringBuilder<T> {
-        SpringBuilder::new(self.clone())
+        SpringBuilder::new(*self)
     }
 
     /// Create a tween animation builder
     pub fn tween(&self) -> TweenBuilder<T> {
-        TweenBuilder::new(self.clone())
+        TweenBuilder::new(*self)
     }
 
     /// Create a keyframe animation builder
     pub fn keyframes(&self) -> KeyframeBuilder<T> {
-        KeyframeBuilder::new(self.clone())
+        KeyframeBuilder::new(*self)
+    }
+
+    /// Sequence animation builder
+    /// Create a sequence animation builder
+    pub fn sequence(&self) -> SequenceBuilder<T> {
+        SequenceBuilder::new(self.clone())
     }
 
     /// Directly animate to a value with default spring physics
@@ -206,12 +211,137 @@ impl<T: Animatable> MotionValue<T> {
     pub fn is_animating(&self) -> bool {
         self.engine.read().is_active()
     }
+
+    /// Create a group animation builder
+    pub fn group(&self) -> GroupBuilder<T> {
+        GroupBuilder::new(self.clone())
+    }
 }
 
+/// Builder for sequence animations
+pub struct SequenceBuilder<T: Animatable> {
+    motion: MotionValue<T>,
+    sequence: AnimationSequence<T>,
+    completion_callback: Arc<Mutex<Vec<Box<dyn FnOnce() + Send>>>>,
+}
+
+impl<T: Animatable> SequenceBuilder<T> {
+    /// Create a new sequence builder
+    fn new(motion: MotionValue<T>) -> Self {
+        Self {
+            motion,
+            sequence: AnimationSequence::new(),
+            completion_callback: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    /// Add an animation to the sequence
+    pub fn then<A: Animation<Value = T> + Send + 'static>(mut self, animation: A) -> Self {
+        self.sequence = self.sequence.then(animation);
+        self
+    }
+
+    /// Add completion callback
+    pub fn on_complete<F: FnOnce() + Send + 'static>(self, callback: F) -> Self {
+        self.completion_callback
+            .lock()
+            .expect("Failed to lock completion callback mutex")
+            .push(Box::new(callback));
+        self
+    }
+
+    /// Start the sequence animation
+    pub fn start(mut self) -> MotionValue<T> {
+        // Apply the completion callback if provided
+        if !self
+            .completion_callback
+            .lock()
+            .expect("Failed to lock completion callback mutex")
+            .is_empty()
+        {
+            let callback_arc = Arc::new(Mutex::new(move || {
+                for callback in self
+                    .completion_callback
+                    .lock()
+                    .expect("Failed to lock completion callback mutex")
+                    .drain(..)
+                {
+                    callback();
+                }
+            }));
+            self.sequence.on_complete = Some(callback_arc);
+        }
+
+        self.motion
+            .engine
+            .write()
+            .apply_sequence(self.sequence.start());
+        self.motion
+    }
+}
+
+pub struct GroupBuilder<T: Animatable> {
+    motion: MotionValue<T>,
+    group: AnimationGroup<T>,
+    completion_callback: Arc<Mutex<Vec<Box<dyn FnOnce() + Send>>>>,
+}
+
+impl<T: Animatable> GroupBuilder<T> {
+    /// Create a new group builder
+    fn new(motion: MotionValue<T>) -> Self {
+        Self {
+            motion,
+            group: AnimationGroup::new(),
+            completion_callback: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    /// Add an animation to the group
+    pub fn add_animation<A: Animation<Value = T> + Send + 'static>(mut self, animation: A) -> Self {
+        self.group = self.group.add_animation(animation);
+        self
+    }
+
+    /// Add completion callback
+    pub fn on_complete<F: FnOnce() + Send + 'static>(mut self, callback: F) -> Self {
+        self.completion_callback
+            .lock()
+            .expect("Failed to lock completion callback mutex")
+            .push(Box::new(callback));
+        self
+    }
+
+    /// Start the group animation
+    pub fn start(mut self) -> MotionValue<T> {
+        // Apply the completion callback if provided
+        if !self
+            .completion_callback
+            .lock()
+            .expect("Failed to lock completion callback mutex")
+            .is_empty()
+        {
+            let callback_arc = Arc::new(Mutex::new(move || {
+                for callback in self
+                    .completion_callback
+                    .lock()
+                    .expect("Failed to lock completion callback mutex")
+                    .drain(..)
+                {
+                    callback();
+                }
+            }));
+            self.group.on_complete = Some(callback_arc);
+        }
+
+        self.motion.engine.write().apply_group(self.group.start());
+        self.motion
+    }
+}
 /// Builder for spring animations
 pub struct SpringBuilder<T: Animatable> {
     motion: MotionValue<T>,
     spring: Spring,
+    target: Option<T>,
     completion_callback: Option<Box<dyn FnOnce() + Send>>,
 }
 
@@ -222,6 +352,7 @@ impl<T: Animatable> SpringBuilder<T> {
             motion,
             spring: Spring::default(),
             completion_callback: None,
+            target: None,
         }
     }
 
@@ -253,6 +384,22 @@ impl<T: Animatable> SpringBuilder<T> {
     pub fn on_complete<F: FnOnce() + Send + 'static>(mut self, callback: F) -> Self {
         self.completion_callback = Some(Box::new(callback));
         self
+    }
+
+    /// Set the target value for the animation
+    pub fn to(mut self, target: T) -> Self {
+        self.target = Some(target);
+        self
+    }
+
+    pub fn build(self) -> SpringAnimation<T> {
+        let target = self
+            .target
+            .expect("Target value must be set before building");
+
+        // Create the spring animation directly
+        self.spring
+            .create_animation(self.motion.get(), target, T::zero())
     }
 
     /// Start animation to target value
@@ -311,6 +458,14 @@ impl<T: Animatable> TweenBuilder<T> {
 
         self.motion.engine.write().tween_to(target, self.tween);
         self.motion
+    }
+
+    /// Create a sequence-compatible tween animation
+    pub fn into_sequence(self) -> Box<dyn Animation<Value = T> + Send> {
+        Box::new(
+            self.tween
+                .create_animation(self.motion.get(), self.motion.get()),
+        )
     }
 }
 

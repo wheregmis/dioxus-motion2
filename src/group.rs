@@ -4,6 +4,7 @@
 //! with shared timing and completion handling.
 
 use instant::Duration;
+use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
 use crate::animatable::Animatable;
@@ -36,75 +37,71 @@ where
     }
 }
 
-/// A group of animations that run together
+pub struct GroupItem<T: Animatable> {
+    /// The animation to run
+    pub animation: Box<dyn Animation<Value = T> + Send>,
+    /// Whether this animation has completed
+    pub completed: bool,
+}
+
+/// A group of animations that run in parallel
 pub struct AnimationGroup<T: Animatable> {
-    /// Animations in this group
-    animations: Vec<Box<dyn Animation<Value = T>>>,
-    /// Timing parameters
-    timing: AnimationTiming,
-    /// Current value (combined from all animations)
-    current: T,
-    /// Current velocity (combined from all animations)
-    velocity: T,
+    /// The animations in this group
+    pub animations: Vec<GroupItem<T>>,
     /// Whether the group is active
-    is_active: bool,
+    pub is_active: bool,
+    /// Completion callback
+    pub on_complete: Option<Arc<Mutex<dyn FnMut() + Send>>>,
+    /// Phantom data for the animation value type
+    _phantom: PhantomData<T>,
+}
+
+impl<T: Animatable> Default for AnimationGroup<T> {
+    fn default() -> Self {
+        Self {
+            animations: Vec::new(),
+            is_active: false,
+            on_complete: None,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 impl<T: Animatable> AnimationGroup<T> {
     /// Create a new empty animation group
     pub fn new() -> Self {
-        Self {
-            animations: Vec::new(),
-            timing: AnimationTiming::default(),
-            current: T::zero(),
-            velocity: T::zero(),
-            is_active: false,
-        }
+        Self::default()
     }
 
     /// Add an animation to the group
     pub fn add_animation<A: Animation<Value = T> + Send + 'static>(mut self, animation: A) -> Self {
-        self.animations.push(Box::new(animation));
-        self.is_active = true;
-        self
-    }
-
-    /// Set the animation timing parameters
-    pub fn with_timing(mut self, timing: AnimationTiming) -> Self {
-        self.timing = timing;
+        self.animations.push(GroupItem {
+            animation: Box::new(animation),
+            completed: false,
+        });
         self
     }
 
     /// Set a completion callback
-    pub fn on_complete<F: FnOnce() + Send + 'static>(mut self, callback: F) -> Self {
-        self.timing.on_complete = Some(Arc::new(Mutex::new({
-            let mut opt_callback = Some(callback);
-            move || {
-                if let Some(cb) = opt_callback.take() {
-                    cb();
-                }
+    pub fn on_complete<F: FnMut() + Send + 'static>(mut self, callback: F) -> Self {
+        self.on_complete = Some(Arc::new(Mutex::new(callback)));
+        self
+    }
+
+    /// Start the animation group
+    pub fn start(mut self) -> Self {
+        if !self.animations.is_empty() {
+            self.is_active = true;
+            // Mark all animations as not completed
+            for anim in &mut self.animations {
+                anim.completed = false;
             }
-        })));
-        self
-    }
-
-    /// Set a delay before the animation starts
-    pub fn with_delay(mut self, delay: Duration) -> Self {
-        self.timing = self.timing.with_delay(delay);
-        self
-    }
-
-    // Add this method to start the animation
-    pub fn start(mut self) {
-        // Initialize and start all animations in the group
-        for animation in &mut self.animations {
-            animation.reset();
         }
-        self.is_active = true;
+        self
     }
 
-    // Add this method to convert into a boxed Animation trait object
-    pub fn into_animation(self) -> Box<dyn Animation<Value = T> + Send + 'static> {
+    /// Build an animation for use with a MotionValue
+    pub fn build(self) -> Box<dyn Animation<Value = T> + Send + 'static> {
         Box::new(self)
     }
 }
@@ -113,84 +110,73 @@ impl<T: Animatable> Animation for AnimationGroup<T> {
     type Value = T;
 
     fn update(&mut self, dt: f32) -> (AnimationState, Self::Value, Self::Value) {
-        if (!self.is_active) {
-            return (AnimationState::Completed, self.current, T::zero());
+        if !self.is_active || self.animations.is_empty() {
+            return (AnimationState::Completed, T::zero(), T::zero());
         }
 
-        // Handle delay
-        if !self.timing.handle_delay(dt) {
-            return (AnimationState::Active, self.current, T::zero());
-        }
-
-        // Track if any animation is still active
-        let mut any_active = false;
-        let mut combined_value: Option<T> = None;
-        let mut combined_velocity: Option<T> = None;
+        let mut all_completed = true;
+        let mut combined_value = T::zero();
+        let mut combined_velocity = T::zero();
 
         // Update all animations
-        for animation in &mut self.animations {
-            let (state, value, velocity) = animation.update(dt);
+        for anim in &mut self.animations {
+            if !anim.completed {
+                let (state, value, velocity) = anim.animation.update(dt);
 
-            // Accumulate values and velocities
-            if let Some(ref mut combined) = combined_value {
-                *combined = combined.add(&value);
-            } else {
-                combined_value = Some(value);
-            }
+                // Combine values and velocities
+                combined_value = combined_value.add(&value);
+                combined_velocity = combined_velocity.add(&velocity);
 
-            if let Some(ref mut combined) = combined_velocity {
-                *combined = combined.add(&velocity);
-            } else {
-                combined_velocity = Some(velocity);
-            }
-
-            if state == AnimationState::Active {
-                any_active = true;
-            }
-        }
-
-        // Update current values
-        if let Some(value) = combined_value {
-            self.current = value;
-        }
-
-        if let Some(velocity) = combined_velocity {
-            self.velocity = velocity;
-        }
-
-        // Handle completion
-        if !any_active {
-            if self.timing.handle_loop_completion() {
-                // Reset all animations
-                for animation in &mut self.animations {
-                    animation.reset();
+                if state == AnimationState::Completed {
+                    anim.completed = true;
+                } else {
+                    all_completed = false;
                 }
-                return (AnimationState::Active, self.current, self.velocity);
-            } else {
-                self.is_active = false;
-                return (AnimationState::Completed, self.current, T::zero());
             }
         }
 
-        (AnimationState::Active, self.current, self.velocity)
+        // Check if all animations are completed
+        if all_completed {
+            self.is_active = false;
+
+            // Call completion callback if provided
+            if let Some(callback) = &self.on_complete {
+                if let Ok(mut callback) = callback.lock() {
+                    (callback)();
+                }
+            }
+
+            return (AnimationState::Completed, combined_value, combined_velocity);
+        }
+
+        (AnimationState::Active, combined_value, combined_velocity)
     }
 
     fn value(&self) -> Self::Value {
-        self.current
+        // Combine values from all animations
+        let mut combined_value = T::zero();
+        for anim in &self.animations {
+            combined_value = combined_value.add(&anim.animation.value());
+        }
+        combined_value
     }
 
     fn velocity(&self) -> Self::Value {
-        self.velocity
+        // Combine velocities from all animations
+        let mut combined_velocity = T::zero();
+        for anim in &self.animations {
+            combined_velocity = combined_velocity.add(&anim.animation.velocity());
+        }
+        combined_velocity
     }
 
     fn reset(&mut self) {
-        for animation in &mut self.animations {
-            animation.reset();
+        // Reset all animations
+        for anim in &mut self.animations {
+            anim.animation.reset();
+            anim.completed = false;
         }
-
-        self.timing.current_loop = 0;
-        self.timing.delay_elapsed = false;
-        self.is_active = true;
+        self.is_active = !self.animations.is_empty();
     }
 
     fn is_active(&self) -> bool {
@@ -198,7 +184,7 @@ impl<T: Animatable> Animation for AnimationGroup<T> {
     }
 }
 
-/// Helper function to create a new animation group
+/// Helper function to create an animation group
 pub fn group<T: Animatable>() -> AnimationGroup<T> {
     AnimationGroup::new()
 }

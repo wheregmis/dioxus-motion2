@@ -8,15 +8,14 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.6.0", features = [] }
-dioxus-motion2 = { path = "../../", default-features = false, features = [
-    "desktop",
-] }
+dioxus-logger = "0.6.2"
+dioxus-motion2 = { path = "../../", default-features = false }
 easer = "0.3.0"
 instant = { version = "0.1.13" }
 tokio = { version = "1.43.0", default-features = false, optional = true }
 
 [features]
 default = ["desktop"]
-web = ["dioxus/web"]
+web = ["dioxus/web", "dioxus-motion2/web"]
 desktop = ["dioxus/desktop", "dioxus-motion2/desktop", "tokio"]
 mobile = ["dioxus/mobile"]
