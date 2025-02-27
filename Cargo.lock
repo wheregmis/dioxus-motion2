@@ -226,8 +226,6 @@ dependencies = [
  "dioxus-logger",
  "dioxus-motion2",
  "easer",
- "instant",
- "tokio",
 ]
 
 [[package]]
@@ -746,20 +744,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dashmap"
-version = "6.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
- "hashbrown 0.14.5",
- "lock_api",
- "once_cell",
- "parking_lot_core",
-]
-
-[[package]]
 name = "data-encoding"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -810,19 +794,16 @@ dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
  "dioxus-desktop",
- "dioxus-devtools",
  "dioxus-document",
  "dioxus-fullstack",
  "dioxus-history",
  "dioxus-hooks",
  "dioxus-html",
- "dioxus-logger",
  "dioxus-mobile",
  "dioxus-router",
  "dioxus-signals",
  "dioxus-web",
  "manganis",
- "warnings",
 ]
 
 [[package]]
@@ -1141,19 +1122,13 @@ dependencies = [
 name = "dioxus-motion2"
 version = "0.1.0"
 dependencies = [
- "dashmap 6.1.0",
  "dioxus",
  "easer",
- "futures-channel",
- "futures-util",
  "instant",
- "js-sys",
- "once_cell",
  "ordered-float",
  "tokio",
+ "tokio_with_wasm",
  "tracing",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -3769,7 +3744,7 @@ checksum = "4fae7a3038a32e5a34ba32c6c45eb4852f8affaf8b794ebfcd4b1099e2d62ebe"
 dependencies = [
  "bytes",
  "const_format",
- "dashmap 5.5.3",
+ "dashmap",
  "futures",
  "gloo-net",
  "http",
@@ -4268,6 +4243,30 @@ dependencies = [
  "futures-sink",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "tokio_with_wasm"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e42d20f41cbfe26740d0c2fb320d44ce7dfa716be135cb663e99a48248a0e897"
+dependencies = [
+ "js-sys",
+ "tokio",
+ "tokio_with_wasm_proc",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "tokio_with_wasm_proc"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee80eb7e23abaa636caa9afe6042c6d8a8c0686165b8165f4fbf2988f0dd347f"
+dependencies = [
+ "quote",
+ "syn 2.0.98",
 ]
 
 [[package]]

@@ -9,14 +9,284 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
     dioxus_logger::init(Level::DEBUG).expect("failed to init logger");
-    dioxus::launch(App);
+    dioxus::launch(|| {
+        rsx! {
+            document::Link { rel: "stylesheet", href: TAILWIND_CSS }
+            Router::<Route> {}
+        }
+    });
+}
+
+#[derive(Routable, Clone, Debug, PartialEq)]
+#[rustfmt::skip]
+#[allow(clippy::empty_line_after_outer_attr)]
+enum Route {
+    // Wrap Home in a Navbar Layout
+    #[layout(NavBar)]
+        // The default route is always "/" unless otherwise specified
+        #[route("/")]
+        Home {},
+
+        #[route("/animation-examples")]
+        AnimationExamples {},
+
+        #[route("/animation-guide")]
+        AnimationGuide {},
+
+    // And the regular page layout
+    #[end_layout]
+    // Finally, we need to handle the 404 page
+    #[route("/:..route")]
+    PageNotFound {
+        route: Vec<String>,
+    },
 }
 
 #[component]
-fn App() -> Element {
+fn Home() -> Element {
     rsx! {
-        document::Link { rel: "stylesheet", href: TAILWIND_CSS }
-        AnimationExamples {}
+        div { class: "min-h-screen bg-gray-100",
+            div { class: "max-w-4xl mx-auto py-12 px-4",
+                h1 { class: "text-4xl font-bold text-gray-900 mb-6",
+                    "Welcome to Dioxus Motion Examples"
+                }
+                p { class: "text-lg text-gray-600 mb-8",
+                    "Explore different animation techniques and examples using Dioxus Motion"
+                }
+                div { class: "grid grid-cols-1 md:grid-cols-2 gap-6",
+                    Link { class: "block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow", to: Route::AnimationExamples {},
+                        h2 { class: "text-xl font-semibold text-gray-900 mb-2",
+                            "Animation Examples"
+                        }
+                        p { class: "text-gray-600",
+                            "View a comprehensive collection of animation examples including spring, tween, keyframe, and more."
+                        }
+                    }
+                    Link { class: "block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow", to: Route::AnimationGuide {},
+                        h2 { class: "text-xl font-semibold text-gray-900 mb-2",
+                            "Animation Guide"
+                        }
+                        p { class: "text-gray-600",
+                            "Learn how to create a full circle animation using different animation types."
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn NavBar() -> Element {
+    rsx! {
+        nav { class: "bg-gray-800 text-white p-4",
+            div { class: "max-w-4xl mx-auto flex items-center justify-between",
+                Link { to: Route::Home {}, class: "text-xl font-bold",
+                    "Dioxus Motion"
+                }
+                div { class: "space-x-6",
+                    Link { to: Route::Home {}, class: "hover:text-gray-300",
+                        "Home"
+                    }
+                    Link { to: Route::AnimationExamples {}, class: "hover:text-gray-300",
+                        "Examples"
+                    }
+                    Link { to: Route::AnimationGuide {}, class: "hover:text-gray-300",
+                        "Guide"
+                    }
+                }
+            }
+        }
+        Outlet::<Route> {}
+    }
+}
+#[component]
+fn AnimationGuide() -> Element {
+    let mut position = use_motion(0.0);
+    let mut current_step = use_signal(|| 0);
+
+    let mut reset_position = move |target: f32| {
+        // Instantly reset to initial position without animation
+        position.set(target);
+    };
+
+    let animate_right = move |_| {
+        reset_position(0.0);
+        position
+            .spring()
+            .stiffness(180.0)
+            .damping(12.0)
+            .animate_to(200.0);
+        current_step.set(1);
+    };
+
+    let animate_down = move |_| {
+        reset_position(200.0);
+        position
+            .tween()
+            .duration(Duration::from_millis(800))
+            .easing(easer::functions::Cubic::ease_in_out)
+            .animate_to(400.0);
+        current_step.set(2);
+    };
+
+    let animate_left = move |_| {
+        reset_position(400.0);
+        position
+            .keyframes()
+            .keyframe(0.0, position.get())
+            .keyframe_with_easing(0.5, 300.0, easer::functions::Bounce::ease_out)
+            .keyframe(1.0, 200.0)
+            .duration(Duration::from_millis(1500))
+            .start();
+        current_step.set(3);
+    };
+
+    let animate_up = move |_| {
+        reset_position(200.0);
+        position
+            .spring()
+            .stiffness(180.0)
+            .damping(12.0)
+            .animate_to(0.0);
+        current_step.set(0);
+    };
+
+    let box_style = use_memo(move || {
+        let translate = match *current_step.read() {
+            0 => format!("translateX({}px)", position.get()),
+            1 => format!("translateX(200px) translateY({}px)", position.get() - 200.0),
+            2 => format!("translateX({}px) translateY(200px)", 600.0 - position.get()),
+            3 => format!("translateY({}px)", 400.0 - position.get()),
+            _ => "translate(0px, 0px)".to_string(),
+        };
+        format!("transform: {}", translate)
+    });
+
+    let current_code = use_memo(move || match *current_step.read() {
+        0 => {
+            r#"// Spring Animation - Move Right
+position
+    .spring()
+    .stiffness(180.0)  // Controls the spring force
+    .damping(12.0)     // Controls the bounce
+    .animate_to(200.0);"#
+        }
+        1 => {
+            r#"// Tween Animation - Move Down
+position
+    .tween()
+    .duration(Duration::from_millis(800))
+    .easing(easer::functions::Cubic::ease_in_out)
+    .animate_to(400.0);"#
+        }
+        2 => {
+            r#"// Keyframe Animation - Move Left
+position
+    .keyframes()
+    .keyframe(0.0, position.get())
+    .keyframe_with_easing(0.5, 300.0, easer::functions::Bounce::ease_out)
+    .keyframe(1.0, 200.0)
+    .duration(Duration::from_millis(1500))
+    .start();"#
+        }
+        3 => {
+            r#"// Spring Animation - Move Up
+position
+    .spring()
+    .stiffness(180.0)
+    .damping(12.0)
+    .animate_to(0.0);"#
+        }
+        _ => "",
+    });
+
+    let step_description = use_memo(move || {
+        match *current_step.read() {
+            0 => "Spring animations create natural, physics-based motion. They're great for interactive elements that need to feel responsive and organic.",
+            1 => "Tween animations provide precise control over timing and easing. Perfect for smooth, predictable transitions.",
+            2 => "Keyframe animations offer the most control, letting you define multiple points in your animation with different easings.",
+            3 => "We complete the circle with another spring animation, showing how different animation types can be combined.",
+            _ => "",
+        }
+    });
+
+    rsx! {
+        div { class: "p-8 max-w-4xl mx-auto",
+            h1 { class: "text-3xl font-bold mb-8",
+                "Animation Guide: Full Circle Motion"
+            }
+
+            // Current Step Information
+            div { class: "mb-8 bg-gray-50 p-6 rounded-lg",
+                h2 { class: "text-xl font-semibold mb-4",
+
+                }
+                p { class: "text-gray-600 mb-4",
+                    "{step_description}"
+                }
+                pre { class: "bg-gray-800 text-white p-4 rounded overflow-x-auto",
+                    code {
+                        "{current_code}"
+                    }
+                }
+            }
+
+            // Animation Demo
+            div { class: "my-6 relative h-[400px] w-[400px] border-2 border-dashed border-gray-300 rounded-lg mx-auto",
+                div {
+                    class: "absolute top-0 left-0 w-16 h-16 bg-blue-500 rounded shadow-md flex items-center justify-center text-white",
+                    style: "{box_style.read()}",
+                    "Box"
+                }
+            }
+
+            // Controls
+            div { class: "flex flex-col items-center gap-4",
+                p { class: "text-gray-600 mb-2",
+                    "Click the buttons in order to see each animation type:"
+                }
+                div { class: "flex gap-4",
+                    button {
+                        class: "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded disabled:opacity-50",
+                        onclick: animate_right,
+                        disabled: "{*current_step.read() != 0}",
+                        "1. Move Right"
+                    }
+                    button {
+                        class: "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded disabled:opacity-50",
+                        onclick: animate_down,
+                        disabled: "{*current_step.read() != 1}",
+                        "2. Move Down"
+                    }
+                    button {
+                        class: "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded disabled:opacity-50",
+                        onclick: animate_left,
+                        disabled: "{*current_step.read() != 2}",
+                        "3. Move Left"
+                    }
+                    button {
+                        class: "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded disabled:opacity-50",
+                        onclick: animate_up,
+                        disabled: "{*current_step.read() != 3}",
+                        "4. Move Up"
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+pub fn PageNotFound(route: Vec<String>) -> Element {
+    rsx! {
+        div { class: "p-8 max-w-4xl mx-auto",
+            h1 { class: "text-3xl font-bold mb-4", "404: Page Not Found" }
+            p { class: "mb-4", "The page you're looking for doesn't exist." }
+            Link { to: Route::Home {}, class: "text-blue-500 hover:underline",
+                "Return to Home"
+            }
+        }
     }
 }
 
@@ -57,19 +327,11 @@ pub fn AnimationExamples() -> Element {
 #[component]
 fn SpringExample() -> Element {
     // Create a spring-animated value starting at 0.0
-    let position = use_motion(0.0);
+    let mut position = use_motion(0.0);
 
     let start_animation = move |_: Event<MouseData>| {
         // Configure and start a spring animation
-        position
-            .spring()
-            .stiffness(180.0) // Higher = stronger spring
-            .damping(12.0) // Higher = less bouncy
-            .mass(1.0) // Higher = more inertia
-            .on_complete(|| {
-                println!("Spring animation completed!");
-            })
-            .animate_to(200.0);
+        position.animate_to(200.0);
     };
 
     let reset_animation = move |_| {
