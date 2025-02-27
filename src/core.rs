@@ -496,8 +496,8 @@ impl<T: Animatable> KeyframeBuilder<T> {
 #[cfg(test)]
 mod stagger_integration_tests {
     use super::*;
-    use crate::stagger::{StaggeredAnimation, stagger};
-    use crate::tween::Tween;
+    use crate::stagger::stagger;
+
     use instant::Duration;
 
     // Simple test animation for stagger tests

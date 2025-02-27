@@ -115,10 +115,10 @@ impl Color {
     /// Tuple of (r,g,b,a) with values from 0-255
     pub fn to_rgba(&self) -> (u8, u8, u8, u8) {
         (
-            (self.r * 255.0) as u8,
-            (self.g * 255.0) as u8,
-            (self.b * 255.0) as u8,
-            (self.a * 255.0) as u8,
+            (self.r * 255.0).round() as u8,
+            (self.g * 255.0).round() as u8,
+            (self.b * 255.0).round() as u8,
+            (self.a * 255.0).round() as u8,
         )
     }
 
@@ -131,7 +131,9 @@ impl Color {
     /// ```
     pub fn to_css_string(&self) -> String {
         let (r, g, b, _) = self.to_rgba();
-        format!("rgba({}, {}, {}, {})", r, g, b, self.a)
+        // Round the alpha to handle floating point precision
+        let alpha = (self.a * 100.0).round() / 100.0;
+        format!("rgba({}, {}, {}, {})", r, g, b, alpha)
     }
 
     /// Converts color to a CSS-compatible hex string
@@ -145,6 +147,7 @@ impl Color {
         let (r, g, b, a) = self.to_rgba();
 
         if a == 255 {
+            // Use exact values without rounding
             format!("#{:02x}{:02x}{:02x}", r, g, b)
         } else {
             format!("#{:02x}{:02x}{:02x}{:02x}", r, g, b, a)

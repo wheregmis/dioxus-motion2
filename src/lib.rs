@@ -12,21 +12,6 @@
 //! - Color interpolation
 //! - Transform animations
 //!
-//! # Example
-//! ```rust
-//! use dioxus_motion2::prelude::*;
-//!
-//! // Create and start a spring animation
-//! let position = use_motion(0.0)
-//!     .spring()
-//!     .stiffness(180.0)
-//!     .damping(20.0)
-//!     .animate_to(100.0);
-//!
-//! // Access the animated value
-//! let current_position = position.get();
-//! ```
-
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::panic)]
 #![deny(unused_variables)]
@@ -90,15 +75,6 @@ pub mod prelude {
 ///
 /// This is the primary entry point for creating animations
 ///
-/// # Example
-/// ```
-/// use dioxus_motion2::prelude::*;
-///
-/// let opacity = use_motion(0.0)
-///     .tween()
-///     .duration(Duration::from_millis(300))
-///     .animate_to(1.0);
-/// ```
 pub fn use_motion<T: Animatable>(initial: T) -> MotionValue<T> {
     let animation_engine = AnimationEngine::new(initial);
     let mut signal = use_signal(|| animation_engine);
@@ -123,8 +99,8 @@ pub fn use_motion<T: Animatable>(initial: T) -> MotionValue<T> {
                 Duration::from_millis(100)
             };
 
-            MotionTime::delay(delay).await;
             last_frame = now;
+            MotionTime::delay(delay).await;
         }
     });
 
