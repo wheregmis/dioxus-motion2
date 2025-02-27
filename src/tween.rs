@@ -17,7 +17,7 @@ pub type EasingFunction = fn(f32, f32, f32, f32) -> f32;
 /// # Example
 /// ```
 /// use dioxus_motion2::{Tween, Duration};
-/// use easer::functions::Cubic;
+/// use easer::functions::{Cubic,Easing};
 ///
 /// let tween = Tween::new()
 ///     .duration(Duration::from_millis(500))

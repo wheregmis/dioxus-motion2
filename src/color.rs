@@ -25,6 +25,7 @@ impl Color {
     ///
     /// # Examples
     /// ```
+    /// use dioxus_motion2::Color;
     /// let orange = Color::new(1.0, 0.5, 0.0, 1.0);
     /// ```
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
@@ -40,6 +41,7 @@ impl Color {
     ///
     /// # Examples
     /// ```
+    /// use dioxus_motion2::Color;
     /// let orange = Color::from_rgba(255, 128, 0, 255);
     /// ```
     pub fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
@@ -61,6 +63,7 @@ impl Color {
     ///
     /// # Examples
     /// ```
+    /// use dioxus_motion2::Color;
     /// let orange = Color::from_hex("#FF8000").unwrap();
     /// ```
     pub fn from_hex(hex: &str) -> Result<Self, &'static str> {
@@ -123,6 +126,7 @@ impl Color {
     ///
     /// # Examples
     /// ```
+    /// use dioxus_motion2::Color;
     /// assert_eq!(Color::new(1.0, 0.5, 0.0, 0.8).to_css_string(), "rgba(255, 128, 0, 0.8)");
     /// ```
     pub fn to_css_string(&self) -> String {
@@ -134,6 +138,7 @@ impl Color {
     ///
     /// # Examples
     /// ```
+    /// use dioxus_motion2::Color;
     /// assert_eq!(Color::new(1.0, 0.5, 0.0, 1.0).to_hex_string(), "#ff8000");
     /// ```
     pub fn to_hex_string(&self) -> String {

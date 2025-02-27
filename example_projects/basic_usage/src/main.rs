@@ -43,14 +43,12 @@ pub fn AnimationExamples() -> Element {
             // Color animation example
             ColorExample {}
 
-        // Group animation example
-        GroupExample {}
+            // Sequence animation example
+            SequenceExample {}
 
-        // Sequence animation example
-        SequenceExample {}
-
-        //    Staggered animation example
+            // Staggered animation example
             StaggeredExample {}
+
         }
     }
 }
@@ -557,152 +555,6 @@ position
     )
     .on_complete(|| {
         println!("Sequence completed!");
-    })
-    .start();"#}
-                    }
-                }
-            }
-        }
-}
-
-/// Group animation example
-#[component]
-fn GroupExample() -> Element {
-    let x_position = use_motion(0.0);
-    let y_position = use_motion(0.0);
-    let rotation = use_motion(0.0);
-    let scale = use_motion(1.0);
-
-    let is_animating = use_signal(|| false);
-
-    let start_animation = move |_| {
-        is_animating.set(true);
-
-        // Create an animation group
-        group::<f64>()
-            .add_animation(
-                x_position
-                    .spring()
-                    .stiffness(180.0)
-                    .damping(12.0)
-                    .to(150.0)
-                    .build(),
-            )
-            .add_animation(
-                y_position
-                    .spring()
-                    .stiffness(120.0)
-                    .damping(8.0)
-                    .to(-30.0)
-                    .build(),
-            )
-            .add_animation(
-                rotation
-                    .tween() // Changed from spring to tween to match the example code
-                    .duration(Duration::from_millis(800))
-                    .easing(easer::functions::Back::ease_out)
-                    .to(PI / 4.0)
-                    .build(),
-            )
-            .add_animation(
-                scale
-                    .spring()
-                    .stiffness(200.0)
-                    .damping(10.0)
-                    .to(1.3)
-                    .build(),
-            )
-            .on_complete(move || {
-                is_animating.set(false);
-                println!("Group animation completed!");
-            })
-            .start();
-    };
-
-    let reset_animation = move |_| {
-        x_position.tween().animate_to(0.0);
-        y_position.tween().animate_to(0.0);
-        rotation.tween().animate_to(0.0);
-        scale.tween().animate_to(1.0);
-    };
-
-    // Generate the style based on the animated values
-    let box_style = use_memo(move || {
-        format!(
-            "transform: translateX({}px) translateY({}px) rotate({}rad) scale({});",
-            x_position.get(),
-            y_position.get(),
-            rotation.get(),
-            scale.get()
-        )
-    });
-
-    rsx! {
-            section { class: "mb-12 border-b pb-8",
-                h2 { class: "text-2xl font-semibold mb-4", "Group Animation" }
-                p { class: "mb-4", "Group animations let you run multiple animations in parallel." }
-
-                div { class: "my-6 relative h-24",
-                    div {
-                        class: "absolute top-0 left-0 w-16 h-16 bg-blue-500 rounded shadow-md flex items-center justify-center text-white",
-                        style: "{box_style.read()}",
-                        "Box"
-                    }
-                }
-
-                div { class: "flex gap-4",
-                    button {
-                        class: "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded",
-                        onclick: start_animation,
-                        "Start Group"
-                    }
-                    button {
-                        class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
-                        onclick: reset_animation,
-                        "Reset"
-                    }
-                }
-
-                pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
-                    code {
-    {r#"// Create motion values
-let x_position = use_motion(0.0);
-let y_position = use_motion(0.0);
-let rotation = use_motion(0.0);
-let scale = use_motion(1.0);
-
-// Create and start an animation group
-group::<f64>()
-    .add_animation(
-        x_position.spring()
-            .stiffness(180.0)
-            .damping(12.0)
-            .to(150.0)
-            .build()
-    )
-    .add_animation(
-        y_position.spring()
-            .stiffness(120.0)
-            .damping(8.0)
-            .to(-30.0)
-            .build()
-    )
-    .add_animation(
-        rotation.tween()
-            .duration(Duration::from_millis(800))
-            .easing(easer::functions::Back::ease_out)
-            .to(PI / 4.0)
-            .build()
-    )
-    .add_animation(
-        scale.spring()
-            .stiffness(200.0)
-            .damping(10.0)
-            .to(1.3)
-            .build()
-    )
-    .on_complete(|| {
-        println!("Group completed!");
     })
     .start();"#}
                     }

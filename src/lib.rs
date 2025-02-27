@@ -54,8 +54,6 @@ mod spring;
 mod transform;
 mod tween;
 
-// Advanced animation modules
-mod group;
 mod sequence;
 mod stagger;
 
@@ -64,7 +62,6 @@ pub use animatable::Animatable;
 pub use animation::{Animation, AnimationState};
 pub use color::Color;
 pub use core::{AnimationEngine, MotionValue};
-pub use group::AnimationGroup;
 pub use keyframe::KeyframeAnimation;
 pub use platform::{MotionTime, TimeProvider};
 pub use sequence::AnimationSequence;
@@ -80,7 +77,6 @@ pub mod prelude {
     pub use crate::animation::{Animation, AnimationState};
     pub use crate::color::Color;
     pub use crate::core::{AnimationEngine, MotionValue};
-    pub use crate::group::{AnimationGroup, group};
     pub use crate::keyframe::{KeyframeAnimation, keyframes};
     pub use crate::sequence::{AnimationSequence, sequence};
     pub use crate::spring::Spring;
@@ -96,6 +92,8 @@ pub mod prelude {
 ///
 /// # Example
 /// ```
+/// use dioxus_motion2::prelude::*;
+///
 /// let opacity = use_motion(0.0)
 ///     .tween()
 ///     .duration(Duration::from_millis(300))
