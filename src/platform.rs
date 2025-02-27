@@ -5,7 +5,6 @@
 
 use instant::{Duration, Instant};
 use std::future::Future;
-use tokio::time;
 use tokio_with_wasm::alias as tokio;
 
 #[cfg(feature = "web")]

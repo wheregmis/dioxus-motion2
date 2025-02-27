@@ -2,7 +2,7 @@
 //!
 //! This module provides the fundamental abstraction for all animation types.
 
-use crate::animatable::Animatable;
+use crate::Animatable;
 use std::sync::{Arc, Mutex};
 
 /// State of an animation

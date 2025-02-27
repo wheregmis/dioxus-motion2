@@ -26,45 +26,29 @@ use dioxus::prelude::*;
 
 pub use instant::Duration;
 
-// Core module imports
-mod animatable;
-mod animation;
 mod core;
 mod platform;
 
 // Animation type modules
-mod color;
-mod keyframe;
-mod spring;
-mod transform;
-mod tween;
-
-mod sequence;
+mod animation;
+mod animations;
+mod properties;
+mod traits;
 
 // Re-exports for ease of use
-pub use animatable::Animatable;
-pub use animation::{Animation, AnimationState};
-pub use color::Color;
+pub use animation::{Animation, AnimationState, AnimationTiming};
 pub use core::{AnimationEngine, MotionValue};
-pub use keyframe::KeyframeAnimation;
 pub use platform::{MotionTime, TimeProvider};
-pub use sequence::AnimationSequence;
-pub use spring::Spring;
-pub use transform::Transform;
-pub use tween::Tween;
+pub use properties::{color::Color, transform::Transform};
+pub use traits::animatable::Animatable;
 
 /// Public prelude containing commonly used types and functions
 pub mod prelude {
     pub use crate::Duration;
-    pub use crate::animatable::Animatable;
-    pub use crate::animation::{Animation, AnimationState};
-    pub use crate::color::Color;
+    pub use crate::animations::sequence;
     pub use crate::core::{AnimationEngine, MotionValue};
-    pub use crate::keyframe::{KeyframeAnimation, keyframes};
-    pub use crate::sequence::{AnimationSequence, sequence};
-    pub use crate::spring::Spring;
-    pub use crate::transform::Transform;
-    pub use crate::tween::Tween;
+    pub use crate::properties::{color::Color, transform::Transform};
+    pub use crate::traits::animatable::Animatable;
     pub use crate::use_motion;
 }
 

@@ -7,15 +7,15 @@ use dioxus::prelude::*;
 use instant::Duration;
 use std::sync::{Arc, Mutex};
 
+use crate::Animatable;
 use crate::MotionTime;
-use crate::animatable::Animatable;
 use crate::animation::{Animation, AnimationState};
-use crate::keyframe::KeyframeAnimation;
+use crate::animations::keyframe::KeyframeAnimation;
+use crate::animations::spring::{Spring, SpringAnimation};
+use crate::animations::tween::Tween;
 use crate::platform::TimeProvider;
 use crate::platform::request_animation_frame;
-use crate::sequence::AnimationSequence;
-use crate::spring::{Spring, SpringAnimation};
-use crate::tween::Tween;
+use crate::prelude::sequence::AnimationSequence;
 
 use tokio_with_wasm::alias as tokio;
 
@@ -526,7 +526,8 @@ impl<T: Animatable> KeyframeBuilder<T> {
     /// Start keyframe animation
     pub fn start(mut self) -> MotionValue<T> {
         // Create keyframe animation
-        let mut keyframe_animation = crate::keyframe::KeyframeAnimation::new(self.duration);
+        let mut keyframe_animation =
+            crate::animations::keyframe::KeyframeAnimation::new(self.duration);
 
         // Add keyframes
         for (position, value, easing) in self.keyframes {

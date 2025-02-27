@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use tracing::{debug, warn};
 
-use crate::animatable::Animatable;
+use crate::Animatable;
 use crate::animation::{Animation, AnimationState};
 
 /// A step in an animation sequence

@@ -3,7 +3,7 @@
 //! Provides RGBA color representation and animation interpolation.
 //! Supports both normalized (0.0-1.0) and byte (0-255) color values.
 
-use crate::animatable::Animatable;
+use crate::Animatable;
 
 /// Represents an RGBA color with normalized components
 ///
@@ -262,5 +262,223 @@ impl Animatable for Color {
             self.b * (1.0 - t) + target.b * t,
             self.a * (1.0 - t) + target.a * t,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_color_new() {
+        let color = Color::new(0.5, 0.7, 0.3, 1.0);
+        assert_eq!(color.r, 0.5);
+        assert_eq!(color.g, 0.7);
+        assert_eq!(color.b, 0.3);
+        assert_eq!(color.a, 1.0);
+
+        // Test clamping
+        let color = Color::new(1.5, -0.7, 2.0, -0.5);
+        assert_eq!(color.r, 1.0);
+        assert_eq!(color.g, 0.0);
+        assert_eq!(color.b, 1.0);
+        assert_eq!(color.a, 0.0);
+    }
+
+    #[test]
+    fn test_color_from_rgba() {
+        let color = Color::from_rgba(128, 255, 0, 192);
+        assert!((color.r - 0.502).abs() < 0.001);
+        assert_eq!(color.g, 1.0);
+        assert_eq!(color.b, 0.0);
+        assert!((color.a - 0.753).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_color_from_hex() {
+        // Test #RGB format
+        let color = Color::from_hex("#F80").expect("Invalid hex color");
+        assert_eq!(color.to_rgba(), (255, 136, 0, 255));
+
+        // Test #RGBA format
+        let color = Color::from_hex("#F80C").expect("Invalid hex color");
+        assert_eq!(color.to_rgba(), (255, 136, 0, 204));
+
+        // Test #RRGGBB format
+        let color = Color::from_hex("#FF8000").expect("Invalid hex color");
+        assert_eq!(color.to_rgba(), (255, 128, 0, 255));
+
+        // Test #RRGGBBAA format
+        let color = Color::from_hex("#FF8000CC").expect("Invalid hex color");
+        assert_eq!(color.to_rgba(), (255, 128, 0, 204));
+
+        // Test invalid formats
+        assert!(Color::from_hex("invalid").is_err());
+        assert!(Color::from_hex("#FF").is_err());
+        assert!(Color::from_hex("#FFGG00").is_err());
+    }
+
+    #[test]
+    fn test_color_to_css_string() {
+        let color = Color::from_rgba(255, 128, 0, 204);
+        assert_eq!(color.to_css_string(), "rgba(255, 128, 0, 0.8)");
+
+        let color = Color::new(1.0, 0.5, 0.0, 1.0);
+        assert_eq!(color.to_css_string(), "rgba(255, 128, 0, 1)");
+    }
+
+    #[test]
+    fn test_color_to_hex_string() {
+        let color = Color::from_rgba(255, 128, 0, 255);
+        assert_eq!(color.to_hex_string(), "#ff8000");
+
+        let color = Color::from_rgba(255, 128, 0, 204);
+        assert_eq!(color.to_hex_string(), "#ff8000cc");
+    }
+
+    #[test]
+    fn test_predefined_colors() {
+        assert_eq!(Color::transparent(), Color::new(0.0, 0.0, 0.0, 0.0));
+        assert_eq!(Color::black(), Color::new(0.0, 0.0, 0.0, 1.0));
+        assert_eq!(Color::white(), Color::new(1.0, 1.0, 1.0, 1.0));
+        assert_eq!(Color::red(), Color::new(1.0, 0.0, 0.0, 1.0));
+        assert_eq!(Color::green(), Color::new(0.0, 1.0, 0.0, 1.0));
+        assert_eq!(Color::blue(), Color::new(0.0, 0.0, 1.0, 1.0));
+        assert_eq!(Color::yellow(), Color::new(1.0, 1.0, 0.0, 1.0));
+        assert_eq!(Color::cyan(), Color::new(0.0, 1.0, 1.0, 1.0));
+        assert_eq!(Color::magenta(), Color::new(1.0, 0.0, 1.0, 1.0));
+        assert_eq!(Color::gray(), Color::new(0.5, 0.5, 0.5, 1.0));
+    }
+
+    #[test]
+    fn test_animatable_implementation() {
+        let color1 = Color::new(1.0, 0.0, 0.0, 1.0);
+        let color2 = Color::new(0.0, 1.0, 0.0, 1.0);
+
+        // Test zero
+        assert_eq!(Color::zero(), Color::transparent());
+
+        // Test magnitude
+        assert!((color1.magnitude() - std::f32::consts::SQRT_2).abs() < 0.0001);
+
+        // Test scale
+        let scaled = color1.scale(0.5);
+        assert_eq!(scaled, Color::new(0.5, 0.0, 0.0, 0.5));
+
+        // Test add
+        let sum = color1.add(&color2);
+        assert_eq!(sum, Color::new(1.0, 1.0, 0.0, 1.0));
+
+        // Test sub
+        let diff = color1.sub(&color2);
+        assert_eq!(diff, Color::new(1.0, 0.0, 0.0, 0.0));
+
+        // Test interpolate
+        let mid = color1.interpolate(&color2, 0.5);
+        assert_eq!(mid, Color::new(0.5, 0.5, 0.0, 1.0));
+    }
+
+    #[test]
+    fn test_color_edge_cases() {
+        // Test extreme values
+        let color = Color::new(f32::MAX, f32::MIN, f32::INFINITY, f32::NEG_INFINITY);
+        assert_eq!(color.r, 1.0);
+        assert_eq!(color.g, 0.0);
+        assert_eq!(color.b, 1.0);
+        assert_eq!(color.a, 0.0);
+
+        // Test NaN values
+        let color = Color::new(f32::NAN, f32::NAN, f32::NAN, f32::NAN);
+        assert!(color.r.is_nan());
+        assert!(color.g.is_nan());
+        assert!(color.b.is_nan());
+        assert!(color.a.is_nan());
+    }
+
+    #[test]
+    fn test_color_interpolation_edge_cases() {
+        let color1 = Color::new(0.0, 0.0, 0.0, 1.0);
+        let color2 = Color::new(1.0, 1.0, 1.0, 0.0);
+
+        // Test interpolation with t = 0
+        let result = color1.interpolate(&color2, 0.0);
+        assert_eq!(result, color1);
+
+        // Test interpolation with t = 1
+        let result = color1.interpolate(&color2, 1.0);
+        assert_eq!(result, color2);
+
+        // Test interpolation with t outside [0,1]
+        let result = color1.interpolate(&color2, -0.5);
+        assert_eq!(result, color1.interpolate(&color2, 0.0));
+
+        let result = color1.interpolate(&color2, 1.5);
+        assert_eq!(result, color1.interpolate(&color2, 1.0));
+    }
+
+    #[test]
+    fn test_color_arithmetic() {
+        let color1 = Color::new(0.5, 0.3, 0.2, 1.0);
+        let color2 = Color::new(0.1, 0.2, 0.3, 0.5);
+
+        // Test addition
+        let sum = color1.add(&color2);
+        assert!((sum.r - 0.6).abs() < f32::EPSILON);
+        assert!((sum.g - 0.5).abs() < f32::EPSILON);
+        assert!((sum.b - 0.5).abs() < f32::EPSILON);
+        assert!((sum.a - 1.0).abs() < f32::EPSILON);
+
+        // Test subtraction
+        let diff = color1.sub(&color2);
+        assert!((diff.r - 0.4).abs() < f32::EPSILON);
+        assert!((diff.g - 0.1).abs() < f32::EPSILON);
+        assert!((diff.b - 0.0).abs() < f32::EPSILON);
+        assert!((diff.a - 0.5).abs() < f32::EPSILON);
+
+        // Test scaling
+        let scaled = color1.scale(0.5);
+        assert!((scaled.r - 0.25).abs() < f32::EPSILON);
+        assert!((scaled.g - 0.15).abs() < f32::EPSILON);
+        assert!((scaled.b - 0.1).abs() < f32::EPSILON);
+        assert!((scaled.a - 0.5).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_color_conversion_precision() {
+        // Test precision of conversions between normalized and byte values
+        let original = Color::from_rgba(127, 63, 31, 255);
+        let rgba = original.to_rgba();
+        let converted = Color::from_rgba(rgba.0, rgba.1, rgba.2, rgba.3);
+
+        assert!((original.r - converted.r).abs() < 0.01);
+        assert!((original.g - converted.g).abs() < 0.01);
+        assert!((original.b - converted.b).abs() < 0.01);
+        assert!((original.a - converted.a).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_color_css_string_formatting() {
+        // Test various alpha values
+        let color = Color::new(1.0, 0.5, 0.0, 1.0);
+        assert_eq!(color.to_css_string(), "rgba(255, 128, 0, 1)");
+
+        let color = Color::new(1.0, 0.5, 0.0, 0.0);
+        assert_eq!(color.to_css_string(), "rgba(255, 128, 0, 0)");
+
+        let color = Color::new(1.0, 0.5, 0.0, 0.5);
+        assert_eq!(color.to_css_string(), "rgba(255, 128, 0, 0.5)");
+    }
+
+    #[test]
+    fn test_color_hex_string_formatting() {
+        // Test various color combinations
+        let color = Color::new(1.0, 1.0, 1.0, 1.0);
+        assert_eq!(color.to_hex_string(), "#ffffff");
+
+        let color = Color::new(0.0, 0.0, 0.0, 1.0);
+        assert_eq!(color.to_hex_string(), "#000000");
+
+        let color = Color::new(1.0, 0.0, 0.0, 0.5);
+        assert_eq!(color.to_hex_string(), "#ff000080");
     }
 }

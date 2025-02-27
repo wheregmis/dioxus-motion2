@@ -8,7 +8,7 @@ use instant::Duration;
 use ordered_float::OrderedFloat;
 use std::collections::BTreeMap;
 
-use crate::animatable::Animatable;
+use crate::Animatable;
 use crate::animation::{Animation, AnimationState, AnimationTiming};
 
 /// Type alias for easing functions from the easer package
@@ -304,9 +304,4 @@ impl<T: Animatable> Animation for KeyframeAnimation<T> {
     fn is_active(&self) -> bool {
         self.is_active
     }
-}
-
-/// Helper function to create a keyframe animation
-pub fn keyframes<T: Animatable>(duration: Duration) -> KeyframeAnimation<T> {
-    KeyframeAnimation::new(duration)
 }

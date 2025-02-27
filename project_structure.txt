@@ -1,0 +1,43 @@
+dioxus-motion2/
+├── src/
+│   ├── animations/           # Different animation implementations
+│   │   ├── mod.rs           # Public animation module interface
+│   │   ├── spring.rs        # Spring physics animations
+│   │   ├── tween.rs         # Tween-based animations
+│   │   ├── keyframe.rs      # Keyframe animations
+│   │   └── sequence.rs      # Animation sequences
+│   │
+│   ├── core/                # Core functionality
+│   │   ├── mod.rs           # Core module interface
+│   │   ├── engine.rs        # Animation engine
+│   │   ├── motion.rs        # Motion value handling
+│   │   └── timing.rs        # Timing and frame management
+│   │
+│   ├── platform/            # Platform-specific implementations
+│   │   ├── mod.rs           # Platform module interface
+│   │   ├── web.rs           # Web-specific code
+│   │   └── desktop.rs       # Desktop-specific code
+│   │
+│   ├── properties/          # Animatable properties
+│   │   ├── mod.rs           # Properties module interface
+│   │   ├── transform.rs     # Transform animations
+│   │   └── color.rs         # Color animations
+│   │
+│   ├── traits/              # Core traits
+│   │   ├── mod.rs           # Traits module interface
+│   │   └── animatable.rs    # Animatable trait definition
+│   │
+│   ├── utils/               # Utility functions and helpers
+│   │   ├── mod.rs           # Utils module interface
+│   │   └── math.rs          # Math utilities
+│   │
+│   ├── prelude.rs           # Common imports
+│   └── lib.rs               # Library root
+│
+├── examples/                # Example projects
+│   ├── basic/              # Basic usage examples
+│   ├── advanced/           # Advanced animation examples
+│   └── showcase/           # Feature showcase
+│
+├── Cargo.toml
+└── README.md

@@ -3,20 +3,12 @@
 //! Provides a physical spring model for smooth, natural-looking animations.
 //! Based on Hooke's law with damping for realistic motion.
 
-use crate::animatable::Animatable;
+use crate::Animatable;
 use crate::animation::{Animation, AnimationState, AnimationTiming};
 
 /// Spring animation with configurable physics
 ///
 /// # Example
-/// ```
-/// use dioxus_motion2::Spring;
-///
-/// let spring = Spring::new()
-///     .stiffness(180.0)
-///     .damping(20.0)
-///     .mass(1.0);
-/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Spring {
     /// Spring stiffness coefficient (default: 100.0)
