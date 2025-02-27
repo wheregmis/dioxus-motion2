@@ -172,11 +172,11 @@ impl<T: Animatable> AnimationEngine<T> {
         // Process callbacks
         if let Ok(mut callbacks) = self.callbacks.lock() {
             // Store callbacks before processing
-            let mut callbacks_to_process = std::mem::take(&mut *callbacks);
 
             // Process callbacks immediately for web
             #[cfg(feature = "web")]
             {
+                let callbacks_to_process = std::mem::take(&mut *callbacks);
                 for callback in callbacks_to_process {
                     callback();
                 }
@@ -184,6 +184,7 @@ impl<T: Animatable> AnimationEngine<T> {
 
             #[cfg(not(feature = "web"))]
             {
+                let mut callbacks_to_process = std::mem::take(&mut *callbacks);
                 while !callbacks_to_process.is_empty() {
                     let chunk: Vec<_> = callbacks_to_process
                         .drain(..callbacks_to_process.len().min(5))
