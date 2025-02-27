@@ -7,17 +7,31 @@ edition = "2024"
 tracing = { version = "0.1.41", default-features = false }
 easer = { version = "0.3.0", default-features = false }
 instant = { version = "0.1.13", optional = true }
-tokio = { version = "1.43.0", features = ["time"] }
-tokio_with_wasm = "0.8.2"
+tokio = { version = "1.43.0", features = ["time", "sync", "rt"] }
+tokio_with_wasm = { version = "0.8.2", features = ["time", "sync", "rt"] }
 # For transition
-dioxus = { version = "0.6.3", default-features = false, features = ["hooks", "html", "macro", "router", "signals"] }
+dioxus = { version = "0.6.3", default-features = false, features = [
+    "hooks",
+    "html",
+    "macro",
+    "router",
+    "signals",
+] }
 ordered-float = { version = "5.0.0", default-features = false }
-
+wasm-bindgen = { version = "0.2.100", optional = true, default-features = false }
+web-sys = { version = "0.3.77", optional = true, default-features = false, features = [
+    "Window",
+] }
 
 [features]
 default = ["web"]
-web = ["instant/wasm-bindgen"]
-desktop = ["instant"]
+web = [
+    "instant/wasm-bindgen",
+    "tokio_with_wasm/sync",
+    "wasm-bindgen",
+    "web-sys",
+]
+desktop = ["instant", "tokio/rt-multi-thread"]
 
 
 [workspace]

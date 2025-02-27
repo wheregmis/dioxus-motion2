@@ -794,16 +794,19 @@ dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
  "dioxus-desktop",
+ "dioxus-devtools",
  "dioxus-document",
  "dioxus-fullstack",
  "dioxus-history",
  "dioxus-hooks",
  "dioxus-html",
+ "dioxus-logger",
  "dioxus-mobile",
  "dioxus-router",
  "dioxus-signals",
  "dioxus-web",
  "manganis",
+ "warnings",
 ]
 
 [[package]]
@@ -1129,6 +1132,8 @@ dependencies = [
  "tokio",
  "tokio_with_wasm",
  "tracing",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

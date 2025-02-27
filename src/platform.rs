@@ -5,8 +5,11 @@
 
 use instant::{Duration, Instant};
 use std::future::Future;
-
+use tokio::time;
 use tokio_with_wasm::alias as tokio;
+
+#[cfg(feature = "web")]
+use wasm_bindgen::closure::Closure;
 
 /// Provides platform-agnostic timing operations
 ///
@@ -25,7 +28,6 @@ pub trait TimeProvider {
 /// Implements platform-specific timing operations:
 /// - For web: Uses requestAnimationFrame or setTimeout
 /// - For native: Uses tokio's sleep
-#[derive(Debug, Clone, Copy)]
 pub struct MotionTime;
 
 impl TimeProvider for MotionTime {
@@ -34,8 +36,30 @@ impl TimeProvider for MotionTime {
     }
 
     fn delay(duration: Duration) -> impl Future<Output = ()> {
-        Box::pin(async move {
-            tokio::time::sleep(duration).await;
-        })
+        tokio::time::sleep(duration)
+    }
+}
+
+// Add a new helper for frame timing
+pub async fn request_animation_frame() {
+    #[cfg(feature = "web")]
+    {
+        use wasm_bindgen::JsCast;
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let cb = Closure::once_into_js(move || {
+            let _ = tx.send(());
+        });
+
+        web_sys::window()
+            .expect("global window does not exist")
+            .request_animation_frame(cb.as_ref().unchecked_ref())
+            .expect("should register `requestAnimationFrame` OK");
+
+        rx.await.expect("channel should not be closed");
+    }
+
+    #[cfg(feature = "desktop")]
+    {
+        tokio::time::sleep(Duration::from_micros(16667)).await;
     }
 }

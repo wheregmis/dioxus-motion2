@@ -40,7 +40,6 @@ mod transform;
 mod tween;
 
 mod sequence;
-mod stagger;
 
 // Re-exports for ease of use
 pub use animatable::Animatable;
@@ -51,7 +50,6 @@ pub use keyframe::KeyframeAnimation;
 pub use platform::{MotionTime, TimeProvider};
 pub use sequence::AnimationSequence;
 pub use spring::Spring;
-pub use stagger::StaggeredAnimation;
 pub use transform::Transform;
 pub use tween::Tween;
 
@@ -65,7 +63,6 @@ pub mod prelude {
     pub use crate::keyframe::{KeyframeAnimation, keyframes};
     pub use crate::sequence::{AnimationSequence, sequence};
     pub use crate::spring::Spring;
-    pub use crate::stagger::{StaggeredAnimation, stagger};
     pub use crate::transform::Transform;
     pub use crate::tween::Tween;
     pub use crate::use_motion;
