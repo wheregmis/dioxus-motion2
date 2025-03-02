@@ -5,10 +5,11 @@
 
 use std::sync::{Arc, Mutex};
 
+use dioxus::signals::Writable;
 use tracing::{debug, warn};
 
-use crate::Animatable;
 use crate::animation::{Animation, AnimationState};
+use crate::{Animatable, MotionValue};
 
 /// A step in an animation sequence
 pub struct AnimationStep<T: Animatable> {
@@ -192,4 +193,66 @@ impl<T: Animatable> Animation for AnimationSequence<T> {
 /// Helper function to create a new animation sequence
 pub fn sequence<T: Animatable>() -> AnimationSequence<T> {
     AnimationSequence::new()
+}
+
+/// Builder for sequence animations
+pub struct SequenceBuilder<T: Animatable> {
+    motion: MotionValue<T>,
+    sequence: AnimationSequence<T>,
+    completion_callback: Arc<Mutex<Vec<Box<dyn FnOnce() + Send>>>>,
+}
+
+impl<T: Animatable> SequenceBuilder<T> {
+    /// Create a new sequence builder
+    pub(crate) fn new(motion: MotionValue<T>) -> Self {
+        Self {
+            motion,
+            sequence: AnimationSequence::new(),
+            completion_callback: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    /// Add an animation to the sequence
+    pub fn then<A: Animation<Value = T> + Send + 'static>(mut self, animation: A) -> Self {
+        self.sequence = self.sequence.then(animation);
+        self
+    }
+
+    /// Add completion callback
+    pub fn on_complete<F: FnOnce() + Send + 'static>(self, callback: F) -> Self {
+        self.completion_callback
+            .lock()
+            .expect("Failed to lock completion callback mutex")
+            .push(Box::new(callback));
+        self
+    }
+
+    /// Start the sequence animation
+    pub fn start(mut self) -> MotionValue<T> {
+        // Apply the completion callback if provided
+        if !self
+            .completion_callback
+            .lock()
+            .expect("Failed to lock completion callback mutex")
+            .is_empty()
+        {
+            let callback_arc = Arc::new(Mutex::new(move || {
+                for callback in self
+                    .completion_callback
+                    .lock()
+                    .expect("Failed to lock completion callback mutex")
+                    .drain(..)
+                {
+                    callback();
+                }
+            }));
+            self.sequence.on_complete = Some(callback_arc);
+        }
+
+        self.motion
+            .engine
+            .write()
+            .apply_sequence(self.sequence.start());
+        self.motion
+    }
 }

@@ -3,8 +3,10 @@
 //! Provides a physical spring model for smooth, natural-looking animations.
 //! Based on Hooke's law with damping for realistic motion.
 
-use crate::Animatable;
+use dioxus::signals::Writable;
+
 use crate::animation::{Animation, AnimationState, AnimationTiming};
+use crate::{Animatable, MotionValue};
 
 /// Spring animation with configurable physics
 ///
@@ -67,56 +69,6 @@ impl Spring {
     pub fn initial_velocity(mut self, velocity: f32) -> Self {
         self.initial_velocity = Some(velocity);
         self
-    }
-
-    /// Configure for a bouncy spring
-    pub fn bouncy() -> Self {
-        Self {
-            stiffness: 120.0,
-            damping: 8.0,
-            mass: 1.0,
-            initial_velocity: None,
-        }
-    }
-
-    /// Configure for a smooth, non-bouncy spring
-    pub fn smooth() -> Self {
-        Self {
-            stiffness: 80.0,
-            damping: 20.0,
-            mass: 1.0,
-            initial_velocity: None,
-        }
-    }
-
-    /// Configure for a stiff, quick spring
-    pub fn stiff() -> Self {
-        Self {
-            stiffness: 210.0,
-            damping: 20.0,
-            mass: 1.0,
-            initial_velocity: None,
-        }
-    }
-
-    /// Configure for molasses-like, slow movement
-    pub fn molasses() -> Self {
-        Self {
-            stiffness: 30.0,
-            damping: 26.0,
-            mass: 3.0,
-            initial_velocity: None,
-        }
-    }
-
-    /// Configure a critically damped spring that doesn't oscillate
-    pub fn critically_damped() -> Self {
-        Self {
-            stiffness: 100.0,
-            damping: 2.0_f32 * (100.0_f32 * 1.0_f32).sqrt(), // 2 * sqrt(k * m)
-            mass: 1.0,
-            initial_velocity: None,
-        }
     }
 
     /// Create a spring animation with the current configuration
@@ -265,5 +217,82 @@ impl<T: Animatable> Animation for SpringAnimation<T> {
 
     fn is_active(&self) -> bool {
         self.is_active
+    }
+}
+
+/// Builder for spring animations
+pub struct SpringBuilder<T: Animatable> {
+    motion: MotionValue<T>,
+    spring: Spring,
+    target: Option<T>,
+    completion_callback: Option<Box<dyn FnOnce() + Send>>,
+}
+
+impl<T: Animatable> SpringBuilder<T> {
+    /// Create a new spring builder
+    pub(crate) fn new(motion: MotionValue<T>) -> Self {
+        Self {
+            motion,
+            spring: Spring::default(),
+            completion_callback: None,
+            target: None,
+        }
+    }
+
+    /// Set spring stiffness
+    pub fn stiffness(mut self, stiffness: f32) -> Self {
+        self.spring.stiffness = stiffness;
+        self
+    }
+
+    /// Set spring damping
+    pub fn damping(mut self, damping: f32) -> Self {
+        self.spring.damping = damping;
+        self
+    }
+
+    /// Set spring mass
+    pub fn mass(mut self, mass: f32) -> Self {
+        self.spring.mass = mass;
+        self
+    }
+
+    /// Set initial velocity
+    pub fn velocity(mut self, velocity: T) -> Self {
+        self.spring.initial_velocity = Some(velocity.magnitude());
+        self
+    }
+
+    /// Add completion callback
+    pub fn on_complete<F: FnOnce() + Send + 'static>(mut self, callback: F) -> Self {
+        self.completion_callback = Some(Box::new(callback));
+        self
+    }
+
+    /// Set the target value for the animation
+    pub fn to(mut self, target: T) -> Self {
+        self.target = Some(target);
+        self
+    }
+
+    pub fn build(self) -> SpringAnimation<T> {
+        let target = self
+            .target
+            .expect("Target value must be set before building");
+
+        // Create the spring animation directly
+        self.spring
+            .create_animation(self.motion.get(), target, T::zero())
+    }
+
+    /// Start animation to target value
+    pub fn animate_to(mut self, target: T) -> MotionValue<T> {
+        // Apply the completion callback if provided
+        if let Some(callback) = self.completion_callback {
+            self.motion.engine.write().add_completion_callback(callback);
+        }
+
+        self.motion.engine.write().spring_to(target, self.spring);
+        self.motion
     }
 }

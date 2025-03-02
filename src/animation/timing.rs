@@ -1,46 +1,4 @@
-//! Core animation traits and types
-//!
-//! This module provides the fundamental abstraction for all animation types.
-
-use crate::Animatable;
 use std::sync::{Arc, Mutex};
-
-/// State of an animation
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AnimationState {
-    /// Animation is still running
-    Active,
-    /// Animation has completed
-    Completed,
-}
-
-/// Core trait for all animation types
-///
-/// This trait defines the interface that all animation implementations must provide.
-pub trait Animation: Send + 'static {
-    /// The type of value being animated
-    type Value: Animatable;
-
-    /// Update the animation with the given time delta in seconds
-    ///
-    /// Returns:
-    /// - The current animation state (active or completed)
-    /// - The current value
-    /// - The current velocity
-    fn update(&mut self, dt: f32) -> (AnimationState, Self::Value, Self::Value);
-
-    /// Get the current value
-    fn value(&self) -> Self::Value;
-
-    /// Get the current velocity
-    fn velocity(&self) -> Self::Value;
-
-    /// Reset the animation to its initial state
-    fn reset(&mut self);
-
-    /// Is the animation in progress
-    fn is_active(&self) -> bool;
-}
 
 /// Animation loop mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

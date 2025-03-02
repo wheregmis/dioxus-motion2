@@ -3,13 +3,15 @@
 //! Provides support for animating through multiple keyframes with
 //! custom timing and easing functions.
 
+use dioxus::signals::Writable;
 use easer::functions::{Easing, Linear};
 use instant::Duration;
 use ordered_float::OrderedFloat;
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 
-use crate::Animatable;
-use crate::animation::{Animation, AnimationState, AnimationTiming};
+use crate::animation::{Animation, AnimationState, AnimationTiming, LoopMode, PlaybackDirection};
+use crate::{Animatable, MotionValue};
 
 /// Type alias for easing functions from the easer package
 // In timing.rs
@@ -64,85 +66,91 @@ pub struct KeyframeAnimation<T: Animatable> {
     is_active: bool,
 }
 
-impl<T: Animatable> KeyframeAnimation<T> {
-    /// Create a new keyframe animation with specified duration
-    pub fn new(duration: Duration) -> Self {
-        // Create a default animation with 0% and 100% keyframes
-        let mut keyframes = BTreeMap::new();
-        let default_value = T::zero();
-
-        keyframes.insert(OrderedFloat(0.0), Keyframe::new(default_value));
-        keyframes.insert(OrderedFloat(1.0), Keyframe::new(default_value));
-
+impl<T: Animatable> Default for KeyframeAnimation<T> {
+    fn default() -> Self {
         Self {
-            keyframes,
-            duration,
+            keyframes: BTreeMap::new(),
+            duration: Duration::from_millis(300),
             timing: AnimationTiming::default(),
             current_time: Duration::ZERO,
-            current: default_value,
+            current: T::zero(),
             velocity: T::zero(),
             prev_time: Duration::ZERO,
-            prev_value: default_value,
-            is_active: true,
+            prev_value: T::zero(),
+            is_active: false,
         }
     }
+}
 
-    /// Add a keyframe at a specific position (0.0 to 1.0)
-    pub fn add_keyframe(mut self, position: f32, value: T) -> Self {
-        let position = position.clamp(0.0, 1.0);
+impl<T: Animatable> KeyframeAnimation<T> {
+    /// Create a new keyframe animation
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Add a keyframe at position (0.0 to 1.0)
+    pub fn at(mut self, position: f32, value: T) -> Self {
         self.keyframes
-            .insert(OrderedFloat(position), Keyframe::new(value));
+            .insert(OrderedFloat(position.clamp(0.0, 1.0)), Keyframe::new(value));
         self
     }
 
-    /// Add a keyframe with a custom easing function
-    pub fn add_keyframe_with_easing(
-        mut self,
-        position: f32,
-        value: T,
-        easing: EasingFunction,
-    ) -> Self {
-        let position = position.clamp(0.0, 1.0);
-        self.keyframes
-            .insert(OrderedFloat(position), Keyframe::with_easing(value, easing));
-        self
-    }
-
-    /// Add a keyframe with a cubic ease-in easing
-    pub fn add_keyframe_ease_in(self, position: f32, value: T) -> Self {
-        self.add_keyframe_with_easing(position, value, easer::functions::Cubic::ease_in)
-    }
-
-    /// Add a keyframe with a cubic ease-out easing
-    pub fn add_keyframe_ease_out(self, position: f32, value: T) -> Self {
-        self.add_keyframe_with_easing(position, value, easer::functions::Cubic::ease_out)
-    }
-
-    /// Add a keyframe with a cubic ease-in-out easing
-    pub fn add_keyframe_ease_in_out(self, position: f32, value: T) -> Self {
-        self.add_keyframe_with_easing(position, value, easer::functions::Cubic::ease_in_out)
-    }
-
-    /// Add a keyframe with a bounce ease-out easing
-    pub fn add_keyframe_bounce(self, position: f32, value: T) -> Self {
-        self.add_keyframe_with_easing(position, value, easer::functions::Bounce::ease_out)
-    }
-
-    /// Add a keyframe with an elastic ease-out easing
-    pub fn add_keyframe_elastic(self, position: f32, value: T) -> Self {
-        self.add_keyframe_with_easing(position, value, easer::functions::Elastic::ease_out)
-    }
-
-    /// Set the animation duration
-    pub fn with_duration(mut self, duration: Duration) -> Self {
+    pub fn duration(mut self, duration: Duration) -> Self {
         self.duration = duration;
         self
     }
 
-    /// Set the animation timing parameters
-    pub fn with_timing(mut self, timing: AnimationTiming) -> Self {
+    /// Add a keyframe with easing
+    pub fn at_with_easing(mut self, position: f32, value: T, easing: EasingFunction) -> Self {
+        self.keyframes.insert(
+            OrderedFloat(position.clamp(0.0, 1.0)),
+            Keyframe::with_easing(value, easing),
+        );
+        self
+    }
+
+    /// Set animation duration
+    pub fn for_duration(mut self, duration: Duration) -> Self {
+        self.duration = duration;
+        self
+    }
+
+    /// Set loop mode
+    pub fn looping(mut self, mode: LoopMode) -> Self {
+        self.timing.loop_mode = mode;
+        self
+    }
+
+    /// Set playback direction
+    pub fn direction(mut self, direction: PlaybackDirection) -> Self {
+        self.timing.direction = direction;
+        self
+    }
+
+    /// Set initial delay
+    pub fn delay(mut self, delay: Duration) -> Self {
+        self.timing.delay = delay;
+        self
+    }
+
+    pub fn timing(mut self, timing: AnimationTiming) -> Self {
         self.timing = timing;
         self
+    }
+
+    /// Set completion callback
+    pub fn on_complete<F>(mut self, f: F) -> Self
+    where
+        F: FnMut() + Send + 'static,
+    {
+        self.timing.on_complete = Some(Arc::new(Mutex::new(f)));
+        self
+    }
+
+    /// Start the animation
+    pub fn start(self, motion: &mut MotionValue<T>) -> MotionValue<T> {
+        motion.engine.write().apply_keyframes(self);
+        *motion
     }
 
     /// Find the surrounding keyframes for a given position
@@ -171,6 +179,13 @@ impl<T: Animatable> KeyframeAnimation<T> {
     }
 }
 
+impl<T: Animatable> MotionValue<T> {
+    /// Start a new keyframe animation
+    pub fn keyframes(&self) -> KeyframeAnimation<T> {
+        KeyframeAnimation::new()
+    }
+}
+
 impl<T: Animatable> Animation for KeyframeAnimation<T> {
     type Value = T;
 
@@ -190,11 +205,7 @@ impl<T: Animatable> Animation for KeyframeAnimation<T> {
         self.current_time += Duration::from_secs_f32(dt);
 
         // Check if we've reached the end
-        let is_completed = if self.timing.is_reverse() {
-            self.current_time >= self.duration
-        } else {
-            self.current_time >= self.duration
-        };
+        let is_completed = self.current_time >= self.duration;
 
         if is_completed {
             // Handle completion

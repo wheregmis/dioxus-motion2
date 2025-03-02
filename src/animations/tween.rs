@@ -3,11 +3,12 @@
 //! Provides time-based animation with customizable easing functions.
 //! Supports duration and interpolation control for smooth animations.
 
+use dioxus::signals::Writable;
 use easer::functions::{Easing, Linear};
 use instant::Duration;
 
-use crate::Animatable;
 use crate::animation::{Animation, AnimationState, AnimationTiming};
+use crate::{Animatable, MotionValue};
 
 /// Type alias for easing functions from the easer package
 pub type EasingFunction = fn(f32, f32, f32, f32) -> f32;
@@ -47,46 +48,6 @@ impl Tween {
     pub fn easing(mut self, easing: EasingFunction) -> Self {
         self.easing = easing;
         self
-    }
-
-    /// Quick configuration for a slow-in, slow-out animation
-    pub fn ease_in_out() -> Self {
-        Self {
-            duration: Duration::from_millis(300),
-            easing: easer::functions::Cubic::ease_in_out,
-        }
-    }
-
-    /// Quick configuration for a slow-start animation
-    pub fn ease_in() -> Self {
-        Self {
-            duration: Duration::from_millis(300),
-            easing: easer::functions::Cubic::ease_in,
-        }
-    }
-
-    /// Quick configuration for a slow-end animation
-    pub fn ease_out() -> Self {
-        Self {
-            duration: Duration::from_millis(300),
-            easing: easer::functions::Cubic::ease_out,
-        }
-    }
-
-    /// Quick configuration for an elastic animation
-    pub fn elastic() -> Self {
-        Self {
-            duration: Duration::from_millis(500),
-            easing: easer::functions::Elastic::ease_out,
-        }
-    }
-
-    /// Quick configuration for a bounce animation
-    pub fn bounce() -> Self {
-        Self {
-            duration: Duration::from_millis(500),
-            easing: easer::functions::Bounce::ease_out,
-        }
     }
 
     /// Create a tween animation with the current configuration
@@ -227,5 +188,72 @@ impl<T: Animatable> Animation for TweenAnimation<T> {
 
     fn is_active(&self) -> bool {
         self.is_active
+    }
+}
+
+/// Builder for tween animations
+pub struct TweenBuilder<T: Animatable> {
+    motion: MotionValue<T>,
+    tween: Tween,
+    target: Option<T>,
+    completion_callback: Option<Box<dyn FnOnce() + Send>>,
+}
+
+impl<T: Animatable> TweenBuilder<T> {
+    /// Create a new tween builder
+    pub(crate) fn new(motion: MotionValue<T>) -> Self {
+        Self {
+            motion,
+            tween: Tween::default(),
+            completion_callback: None,
+            target: None,
+        }
+    }
+
+    /// Set tween duration
+    pub fn duration(mut self, duration: Duration) -> Self {
+        self.tween.duration = duration;
+        self
+    }
+
+    /// Set easing function
+    pub fn easing(mut self, easing: fn(f32, f32, f32, f32) -> f32) -> Self {
+        self.tween.easing = easing;
+        self
+    }
+
+    /// Add completion callback
+    pub fn on_complete<F: FnOnce() + Send + 'static>(mut self, callback: F) -> Self {
+        self.completion_callback = Some(Box::new(callback));
+        self
+    }
+
+    /// Set the target value for the animation
+    pub fn to(mut self, target: T) -> Self {
+        self.target = Some(target);
+        self
+    }
+
+    /// Build the animation for use in sequences or groups
+    pub fn build(self) -> Box<dyn Animation<Value = T> + Send> {
+        let target = self.target.unwrap_or_else(|| self.motion.get());
+        Box::new(self.tween.create_animation(self.motion.get(), target))
+    }
+
+    /// Start animation to target value
+    pub fn animate_to(mut self, target: T) -> MotionValue<T> {
+        // Apply the completion callback if provided
+        if let Some(callback) = self.completion_callback {
+            self.motion.engine.write().add_completion_callback(callback);
+        }
+
+        self.motion.engine.write().tween_to(target, self.tween);
+        self.motion
+    }
+
+    /// Create a sequence-compatible tween animation
+    pub fn into_sequence(self) -> Box<dyn Animation<Value = T> + Send> {
+        let target = self.target.unwrap_or_else(|| self.motion.get());
+        Box::new(self.tween.create_animation(self.motion.get(), target))
     }
 }

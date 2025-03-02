@@ -16,4 +16,4 @@ easer = { version = "0.3.0", default-features = false }
 default = ["desktop"]
 web = ["dioxus/web", "dioxus-motion2/web"]
 desktop = ["dioxus/desktop", "dioxus-motion2/desktop"]
-mobile = ["dioxus/mobile"]
+mobile = ["dioxus/mobile", "dioxus-motion2/desktop"]

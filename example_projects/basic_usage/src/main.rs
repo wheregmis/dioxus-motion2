@@ -5,6 +5,11 @@ use dioxus_logger::tracing::Level;
 use dioxus_motion2::prelude::*;
 use easer::functions::Easing;
 
+mod components;
+
+use crate::components::home::Home;
+use crate::components::navbar::NavBar;
+
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
@@ -20,7 +25,7 @@ fn main() {
 #[derive(Routable, Clone, Debug, PartialEq)]
 #[rustfmt::skip]
 #[allow(clippy::empty_line_after_outer_attr)]
-enum Route {
+pub enum Route {
     // Wrap Home in a Navbar Layout
     #[layout(NavBar)]
         // The default route is always "/" unless otherwise specified
@@ -42,64 +47,6 @@ enum Route {
     },
 }
 
-#[component]
-fn Home() -> Element {
-    rsx! {
-        div { class: "min-h-screen bg-gray-100",
-            div { class: "max-w-4xl mx-auto py-12 px-4",
-                h1 { class: "text-4xl font-bold text-gray-900 mb-6",
-                    "Welcome to Dioxus Motion Examples"
-                }
-                p { class: "text-lg text-gray-600 mb-8",
-                    "Explore different animation techniques and examples using Dioxus Motion"
-                }
-                div { class: "grid grid-cols-1 md:grid-cols-2 gap-6",
-                    Link { class: "block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow", to: Route::AnimationExamples {},
-                        h2 { class: "text-xl font-semibold text-gray-900 mb-2",
-                            "Animation Examples"
-                        }
-                        p { class: "text-gray-600",
-                            "View a comprehensive collection of animation examples including spring, tween, keyframe, and more."
-                        }
-                    }
-                    Link { class: "block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow", to: Route::AnimationGuide {},
-                        h2 { class: "text-xl font-semibold text-gray-900 mb-2",
-                            "Animation Guide"
-                        }
-                        p { class: "text-gray-600",
-                            "Learn how to create a full circle animation using different animation types."
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn NavBar() -> Element {
-    rsx! {
-        nav { class: "bg-gray-800 text-white p-4",
-            div { class: "max-w-4xl mx-auto flex items-center justify-between",
-                Link { to: Route::Home {}, class: "text-xl font-bold",
-                    "Dioxus Motion"
-                }
-                div { class: "space-x-6",
-                    Link { to: Route::Home {}, class: "hover:text-gray-300",
-                        "Home"
-                    }
-                    Link { to: Route::AnimationExamples {}, class: "hover:text-gray-300",
-                        "Examples"
-                    }
-                    Link { to: Route::AnimationGuide {}, class: "hover:text-gray-300",
-                        "Guide"
-                    }
-                }
-            }
-        }
-        Outlet::<Route> {}
-    }
-}
 #[component]
 fn AnimationGuide() -> Element {
     let mut position = use_motion(0.0);
@@ -134,11 +81,11 @@ fn AnimationGuide() -> Element {
         reset_position(400.0);
         position
             .keyframes()
-            .keyframe(0.0, position.get())
-            .keyframe_with_easing(0.5, 300.0, easer::functions::Bounce::ease_out)
-            .keyframe(1.0, 200.0)
-            .duration(Duration::from_millis(1500))
-            .start();
+            .at(0.0, position.get())
+            .at_with_easing(0.5, 300.0, easer::functions::Bounce::ease_out)
+            .at(1.0, 200.0)
+            .for_duration(Duration::from_millis(1500))
+            .start(&mut position);
         current_step.set(3);
     };
 
@@ -464,19 +411,18 @@ opacity.tween()
 #[component]
 fn KeyframeExample() -> Element {
     // Create a keyframe-animated value for position
-    let position = use_motion(0.0);
+    let mut position = use_motion(0.0);
 
     // Button click handlers for animation
     let start_animation = move |_| {
         // Configure and start a keyframe animation
         position
             .keyframes()
-            .keyframe(0.0, 0.0)
-            .keyframe_with_easing(0.3, 150.0, easer::functions::Cubic::ease_out)
-            .keyframe_with_easing(0.7, 50.0, easer::functions::Bounce::ease_out)
-            .keyframe(1.0, 100.0)
-            .duration(Duration::from_millis(2000))
-            .start();
+            .at(0.0, 0.0)
+            .at_with_easing(0.3, 150.0, easer::functions::Cubic::ease_out)
+            .at_with_easing(0.7, 50.0, easer::functions::Bounce::ease_out)
+            .at(1.0, 100.0)
+            .start(&mut position);
     };
 
     let reset_animation = move |_| {
