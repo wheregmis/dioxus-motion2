@@ -8,9 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::Animatable;
 use crate::MotionTime;
-use crate::animation::{
-    Animation, AnimationConfig, AnimationMode, AnimationState, AnimationTiming,
-};
+use crate::animation::{Animation, AnimationConfig, AnimationMode, AnimationState};
 use crate::animations::keyframe::KeyframeAnimation;
 use crate::animations::spring::Spring;
 use crate::animations::spring::SpringBuilder;
