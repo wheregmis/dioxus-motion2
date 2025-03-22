@@ -177,14 +177,16 @@ impl Animatable for Transform {
 
     /// Calculates the magnitude of the transform
     fn magnitude(&self) -> f32 {
-        (self.x * self.x
-            + self.y * self.y
-            + (self.scale_x - 1.0) * (self.scale_x - 1.0)
-            + (self.scale_y - 1.0) * (self.scale_y - 1.0)
-            + self.rotation * self.rotation
-            + self.skew_x * self.skew_x
-            + self.skew_y * self.skew_y)
-            .sqrt()
+        // Calculate magnitude for each component separately
+        let translation_mag = (self.x * self.x + self.y * self.y).sqrt();
+        let scale_mag = ((self.scale_x - 1.0) * (self.scale_x - 1.0)
+            + (self.scale_y - 1.0) * (self.scale_y - 1.0))
+            .sqrt();
+        let rotation_mag = self.rotation.abs();
+        let skew_mag = (self.skew_x * self.skew_x + self.skew_y * self.skew_y).sqrt();
+
+        // Weight the components differently
+        translation_mag * 0.5 + scale_mag * 0.3 + rotation_mag * 0.1 + skew_mag * 0.1
     }
 
     /// Scales all components of the transform by a factor
@@ -192,11 +194,11 @@ impl Animatable for Transform {
         Self {
             x: self.x * factor,
             y: self.y * factor,
-            scale_x: self.scale_x,   // Keep original scale
-            scale_y: self.scale_y,   // Keep original scale
-            rotation: self.rotation, // Keep original rotation
-            skew_x: self.skew_x,     // Keep original skew
-            skew_y: self.skew_y,     // Keep original skew
+            scale_x: 1.0 + (self.scale_x - 1.0) * factor, // Scale relative to 1.0
+            scale_y: 1.0 + (self.scale_y - 1.0) * factor, // Scale relative to 1.0
+            rotation: self.rotation * factor,
+            skew_x: self.skew_x * factor,
+            skew_y: self.skew_y * factor,
         }
     }
 
@@ -205,8 +207,8 @@ impl Animatable for Transform {
         Self {
             x: self.x + other.x,
             y: self.y + other.y,
-            scale_x: self.scale_x + other.scale_x,
-            scale_y: self.scale_y + other.scale_y,
+            scale_x: self.scale_x + (other.scale_x - 1.0), // Add relative to 1.0
+            scale_y: self.scale_y + (other.scale_y - 1.0), // Add relative to 1.0
             rotation: self.rotation + other.rotation,
             skew_x: self.skew_x + other.skew_x,
             skew_y: self.skew_y + other.skew_y,
@@ -218,8 +220,8 @@ impl Animatable for Transform {
         Self {
             x: self.x - other.x,
             y: self.y - other.y,
-            scale_x: self.scale_x - other.scale_x,
-            scale_y: self.scale_y - other.scale_y,
+            scale_x: self.scale_x - (other.scale_x - 1.0), // Subtract relative to 1.0
+            scale_y: self.scale_y - (other.scale_y - 1.0), // Subtract relative to 1.0
             rotation: self.rotation - other.rotation,
             skew_x: self.skew_x - other.skew_x,
             skew_y: self.skew_y - other.skew_y,

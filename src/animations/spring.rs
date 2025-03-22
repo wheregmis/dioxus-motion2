@@ -156,10 +156,17 @@ impl<T: Animatable> SpringAnimation<T> {
         // Update position
         self.current = self.current.add(&self.velocity.scale(dt));
 
-        // Check for completion
-        if self.velocity.magnitude() < T::epsilon() && displacement.magnitude() < T::epsilon() {
+        // Check for completion with more lenient thresholds
+        let velocity_magnitude = self.velocity.magnitude();
+        let displacement_magnitude = displacement.magnitude();
+
+        // Use a much larger epsilon for completion check
+        let completion_epsilon = T::epsilon() * 1000.0;
+
+        if velocity_magnitude < completion_epsilon && displacement_magnitude < completion_epsilon {
             // Snap to target for precision
             self.current = self.target;
+
             false // Animation completed
         } else {
             true // Animation still active

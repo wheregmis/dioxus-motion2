@@ -227,6 +227,10 @@ impl<T: Animatable> MotionValue<T> {
         self.engine.read().get()
     }
 
+    pub fn peek(&self) -> T {
+        self.engine.peek().get()
+    }
+
     /// Set the value directly (without animation)
     pub fn set(&mut self, value: T) {
         self.engine.write().set(value);

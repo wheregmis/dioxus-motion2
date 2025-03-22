@@ -5,7 +5,6 @@ use dioxus::prelude::*;
 use crate::use_motion;
 
 use super::utility::TransitionVariant;
-
 #[derive(Clone)]
 pub enum AnimatedRouterContext<R: Routable + PartialEq> {
     /// Transition from one route to another.
@@ -65,6 +64,11 @@ pub fn AnimatedOutlet<R: AnimatableRoute>() -> Element {
 
     use_effect(move || {
         if prev_route.peek().target_route() != &use_route::<R>() {
+            println!(
+                "Route changed: {:?} -> {:?}",
+                prev_route.peek().target_route().to_string(),
+                use_route::<R>().to_string()
+            );
             prev_route
                 .write()
                 .set_target_route(use_route::<R>().clone());
@@ -81,9 +85,15 @@ pub fn AnimatedOutlet<R: AnimatableRoute>() -> Element {
     if let Some((from, to)) = from_route {
         // Special handling for transitions from root path
         let is_from_root = from.to_string() == "/";
+        let current_depth = outlet.level();
+        let target_depth = to.get_layout_depth();
+        let from_depth = from.get_layout_depth();
 
-        // Animate if either we're at the correct level OR we're transitioning from root
-        if is_from_root || outlet.level() == route.get_layout_depth() {
+        // Animate if:
+        // 1. We're transitioning from root
+        // 2. We're at the correct layout depth
+        // 3. The target route has a different layout depth than the current route
+        if is_from_root || current_depth == target_depth || from_depth != target_depth {
             return rsx! {
                 FromRouteToCurrent::<R> {
                     route_type: PhantomData,
@@ -123,21 +133,31 @@ fn FromRouteToCurrent<R: AnimatableRoute>(route_type: PhantomData<R>, from: R, t
     let from_opacity = use_motion(1.0f32);
     let to_opacity = use_motion(0.0f32);
 
+    // Track animation state separately
+    let mut is_animating = use_signal(|| true);
+
+    // Start animation in a separate effect
     use_effect(move || {
-        // Animate FROM route
+        // Animate FROM route with gentler spring
         from_transform
             .spring()
-            .stiffness(160.0)
-            .damping(20.0)
-            .mass(1.5)
+            .stiffness(80.0) // Reduced from 160.0
+            .damping(12.0) // Reduced from 20.0
+            .mass(1.0) // Reduced from 1.5
+            .on_complete(move || {
+                println!("From transform animation complete");
+            })
             .animate_to(config.exit_end);
 
-        // Animate TO route
+        // Animate TO route with gentler spring
         to_transform
             .spring()
-            .stiffness(160.0)
-            .damping(20.0)
-            .mass(1.5)
+            .stiffness(80.0) // Reduced from 160.0
+            .damping(12.0) // Reduced from 20.0
+            .mass(1.0) // Reduced from 1.5
+            .on_complete(move || {
+                println!("To transform animation complete");
+            })
             .animate_to(config.enter_end);
 
         // Fade out old route
@@ -146,6 +166,9 @@ fn FromRouteToCurrent<R: AnimatableRoute>(route_type: PhantomData<R>, from: R, t
             .stiffness(160.0)
             .damping(20.0)
             .mass(1.5)
+            .on_complete(move || {
+                println!("From opacity animation complete");
+            })
             .animate_to(0.0);
 
         // Fade in new route
@@ -154,11 +177,26 @@ fn FromRouteToCurrent<R: AnimatableRoute>(route_type: PhantomData<R>, from: R, t
             .stiffness(160.0)
             .damping(20.0)
             .mass(1.5)
+            .on_complete(move || {
+                println!("To opacity animation complete");
+            })
             .animate_to(1.0);
     });
 
+    // Track animation completion in a separate effect
     use_effect(move || {
-        if !from_transform.is_animating() && !to_transform.is_animating() {
+        let from_transform_animating = from_transform.is_animating();
+        let to_transform_animating = to_transform.is_animating();
+        let from_opacity_animating = from_opacity.is_animating();
+        let to_opacity_animating = to_opacity.is_animating();
+
+        if !from_transform_animating
+            && !to_transform_animating
+            && !from_opacity_animating
+            && !to_opacity_animating
+            && *is_animating.peek()
+        {
+            is_animating.set(false);
             animated_router.write().settle();
         }
     });
