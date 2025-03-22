@@ -11,6 +11,7 @@
 //! - Staggered animations for sequential effects
 //! - Color interpolation
 //! - Transform animations
+//! - Page transitions (with "transitions" feature)
 //!
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::panic)]
@@ -34,6 +35,7 @@ mod animation;
 pub mod animations;
 mod properties;
 mod traits;
+pub mod transitions;
 
 // Re-exports for ease of use
 pub use animation::{Animation, AnimationState, AnimationTiming};
@@ -42,9 +44,14 @@ pub use platform::{MotionTime, TimeProvider};
 pub use properties::{color::Color, transform::Transform};
 pub use traits::animatable::Animatable;
 
+#[cfg(feature = "transitions")]
+pub use dioxus_motion_transitions_macro::MotionTransitions;
+
 /// Public prelude containing commonly used types and functions
 pub mod prelude {
     pub use crate::Duration;
+    #[cfg(feature = "transitions")]
+    pub use crate::MotionTransitions;
     pub use crate::animation::timing::LoopMode;
     pub use crate::animation::{AnimationConfig, AnimationMode};
     pub use crate::animations::sequence;
@@ -52,6 +59,8 @@ pub mod prelude {
     pub use crate::core::{AnimationEngine, MotionValue};
     pub use crate::properties::{color::Color, transform::Transform};
     pub use crate::traits::animatable::Animatable;
+    #[cfg(feature = "transitions")]
+    pub use crate::transitions::page_transition::{AnimatableRoute, AnimatedOutlet};
     pub use crate::use_motion;
 }
 

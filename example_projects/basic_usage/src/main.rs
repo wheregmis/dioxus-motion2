@@ -2,8 +2,8 @@ use std::f32::consts::PI;
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing::Level;
-use dioxus_motion2::animations::keyframe::KeyframeAnimation;
 use dioxus_motion2::prelude::*;
+use dioxus_motion2::transitions::utility::TransitionVariant;
 use easer::functions::Easing;
 
 mod components;
@@ -23,7 +23,7 @@ fn main() {
     });
 }
 
-#[derive(Routable, Clone, Debug, PartialEq)]
+#[derive(Routable, Clone, Debug, PartialEq, MotionTransitions)]
 #[rustfmt::skip]
 #[allow(clippy::empty_line_after_outer_attr)]
 pub enum Route {
@@ -31,18 +31,22 @@ pub enum Route {
     #[layout(NavBar)]
         // The default route is always "/" unless otherwise specified
         #[route("/")]
+        #[transition(Fade)]
         Home {},
 
         #[route("/animation-examples")]
+        #[transition(SlideLeft)]
         AnimationExamples {},
 
         #[route("/animation-guide")]
+        #[transition(SlideLeft)]
         AnimationGuide {},
 
     // And the regular page layout
     #[end_layout]
     // Finally, we need to handle the 404 page
     #[route("/:..route")]
+    #[transition(SlideLeft)]
     PageNotFound {
         route: Vec<String>,
     },

@@ -10,7 +10,7 @@ instant = { version = "0.1.13", optional = true }
 tokio = { version = "1.43.0", features = ["time", "sync", "rt"] }
 tokio_with_wasm = { version = "0.8.2", features = ["time", "sync", "rt"] }
 # For transition
-dioxus = { version = "0.6.3", default-features = false, features = [
+dioxus = { git = "https://github.com/wheregmis/dioxus.git", branch = "main", features = [
     "hooks",
     "html",
     "macro",
@@ -22,6 +22,7 @@ wasm-bindgen = { version = "0.2.100", optional = true, default-features = false 
 web-sys = { version = "0.3.77", optional = true, default-features = false, features = [
     "Window",
 ] }
+dioxus-motion-transitions-macro = { path = "packages/dioxus-motion-transitions-macro", optional = true }
 
 [features]
 default = ["web"]
@@ -32,10 +33,14 @@ web = [
     "web-sys",
 ]
 desktop = ["instant", "tokio/rt-multi-thread"]
-
+transitions = ["dioxus-motion-transitions-macro"]
 
 [workspace]
-members = [".", "example_projects/*"]
+members = [
+    ".",
+    "example_projects/*",
+    "packages/dioxus-motion-transitions-macro",
+]
 resolver = "2"
 
 [profile]

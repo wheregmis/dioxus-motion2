@@ -1,6 +1,6 @@
 use crate::Route;
 use dioxus::prelude::*;
-use dioxus_motion2::*;
+use dioxus_motion2::{prelude::AnimatedOutlet, *};
 
 #[component]
 pub fn NavBar() -> Element {
@@ -129,7 +129,7 @@ pub fn NavBar() -> Element {
                     }
                 }
             }
-            main { class: "pt-16", Outlet::<Route> {} }
+            main { class: "pt-16", AnimatedOutlet::<Route> {} }
         }
     }
 }

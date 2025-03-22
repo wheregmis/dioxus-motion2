@@ -1,4 +1,4 @@
-use dioxus::{html::style, prelude::*};
+use dioxus::prelude::*;
 use dioxus_motion2::*;
 use std::f32::consts::PI;
 
@@ -140,13 +140,6 @@ fn HeroContent() -> Element {
     });
 
     let subtitle_style = use_memo(move || format!("opacity: {}", subtitle_opacity.get()));
-    let cards_style = use_memo(move || {
-        format!(
-            "transform: scale({}); opacity: {};",
-            cards_scale.get(),
-            cards_opacity.get()
-        )
-    });
 
     rsx! {
         div { class: "flex-1 relative container mx-auto px-4 pt-32 pb-16 flex flex-col",
