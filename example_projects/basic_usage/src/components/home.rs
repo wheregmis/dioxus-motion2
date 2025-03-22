@@ -101,12 +101,27 @@ fn HeroContent() -> Element {
     let subtitle_opacity = use_motion(0.0);
     let cards_scale = use_motion(0.95);
     let cards_opacity = use_motion(0.0);
+    let title_rotate = use_motion(0.0);
+    let title_scale = use_motion(0.9);
 
     use_effect(move || {
+        // Staggered animations for a more dynamic entrance
         title_y
             .spring()
             .stiffness(100.0)
             .damping(15.0)
+            .animate_to(0.0);
+
+        title_scale
+            .spring()
+            .stiffness(150.0)
+            .damping(20.0)
+            .animate_to(1.0);
+
+        title_rotate
+            .spring()
+            .stiffness(80.0)
+            .damping(12.0)
             .animate_to(0.0);
 
         title_opacity
@@ -133,8 +148,10 @@ fn HeroContent() -> Element {
 
     let title_style = use_memo(move || {
         format!(
-            "transform: translateY({}px); opacity: {};",
+            "transform: translateY({}px) scale({}) rotate({}deg); opacity: {};",
             title_y.get(),
+            title_scale.get(),
+            title_rotate.get(),
             title_opacity.get()
         )
     });
@@ -144,9 +161,9 @@ fn HeroContent() -> Element {
     rsx! {
         div { class: "flex-1 relative container mx-auto px-4 pt-32 pb-16 flex flex-col",
             h1 {
-                class: "text-5xl font-bold text-center mb-6",
+                class: "text-6xl font-bold text-center mb-6",
                 style: "{title_style}",
-                span { class: "bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent",
+                span { class: "bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 bg-clip-text text-transparent",
                     "Smooth Animations for Rust"
                 }
             }
@@ -320,6 +337,7 @@ fn LearnMore() -> Element {
     let scale = use_motion(0.95);
     let opacity = use_motion(0.0);
     let mut rotate = use_motion(0.0);
+    let y = use_motion(20.0);
 
     use_effect(move || {
         scale
@@ -333,6 +351,8 @@ fn LearnMore() -> Element {
             .duration(Duration::from_millis(800))
             .animate_to(1.0);
 
+        y.spring().stiffness(100.0).damping(15.0).animate_to(0.0);
+
         rotate
             .keyframes()
             .at(0.0, 0.0)
@@ -344,16 +364,17 @@ fn LearnMore() -> Element {
 
     let style = use_memo(move || {
         format!(
-            "transform: scale({}) rotate({}rad); opacity: {};",
+            "transform: scale({}) rotate({}rad) translateY({}px); opacity: {};",
             scale.get(),
             rotate.get(),
+            y.get(),
             opacity.get()
         )
     });
 
     rsx! {
         div { class: "text-center mb-8", style: "{style}",
-            button { class: "px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-white font-semibold",
+            button { class: "px-8 py-4 bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 rounded-full text-white font-semibold text-lg hover:shadow-lg hover:shadow-orange-500/30 transition-all duration-300",
                 "Learn More"
             }
         }
@@ -362,24 +383,75 @@ fn LearnMore() -> Element {
 
 #[component]
 fn FeatureCards() -> Element {
+    let cards = [
+        (
+            "Spring Physics",
+            "Natural-feeling animations powered by spring physics simulation.",
+        ),
+        (
+            "Type Safe",
+            "Leverage Rust's type system for reliable animations.",
+        ),
+        (
+            "Performant",
+            "Optimized animation engine with minimal overhead.",
+        ),
+    ];
+
+    let mut card_states = Signal::new(
+        cards
+            .iter()
+            .map(|_| {
+                let scale = use_motion(0.95);
+                let opacity = use_motion(0.0);
+                let y = use_motion(20.0);
+                (scale, opacity, y)
+            })
+            .collect::<Vec<_>>(),
+    );
+
+    use_effect(move || {
+        for (i, (scale, opacity, y)) in card_states.write().iter_mut().enumerate() {
+            let delay = Duration::from_millis(800 + i as u64 * 200);
+
+            scale
+                .spring()
+                .stiffness(150.0)
+                .damping(20.0)
+                .animate_to(1.0);
+
+            opacity
+                .tween()
+                .duration(Duration::from_millis(800))
+                .animate_to(1.0);
+
+            y.spring().stiffness(100.0).damping(15.0).animate_to(0.0);
+        }
+    });
+
     rsx! {
         div { class: "grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto",
-            // Individual cards with adjusted transparency
-            div { class: "bg-zinc-800/20 rounded-xl p-6 backdrop-blur-sm border border-zinc-700/30 hover:bg-zinc-800/30 transition-colors",
-                h3 { class: "text-xl font-semibold mb-3", "Spring Physics" }
-                p { class: "text-zinc-400",
-                    "Natural-feeling animations powered by spring physics simulation."
-                }
-            }
-
-            div { class: "bg-zinc-800/20 rounded-xl p-6 backdrop-blur-sm border border-zinc-700/30 hover:bg-zinc-800/30 transition-colors",
-                h3 { class: "text-xl font-semibold mb-3", "Type Safe" }
-                p { class: "text-zinc-400", "Leverage Rust's type system for reliable animations." }
-            }
-
-            div { class: "bg-zinc-800/20 rounded-xl p-6 backdrop-blur-sm border border-zinc-700/30 hover:bg-zinc-800/30 transition-colors",
-                h3 { class: "text-xl font-semibold mb-3", "Performant" }
-                p { class: "text-zinc-400", "Optimized animation engine with minimal overhead." }
+            {
+                cards
+                    .iter()
+                    .enumerate()
+                    .map(|(i, (title, description))| {
+                        let (scale, opacity, y) = &card_states.read()[i];
+                        let style = format!(
+                            "transform: scale({}) translateY({}px); opacity: {};",
+                            scale.get(),
+                            y.get(),
+                            opacity.get(),
+                        );
+                        rsx! {
+                            div {
+                                class: "bg-zinc-800/20 rounded-xl p-6 backdrop-blur-sm border border-zinc-700/30 hover:bg-zinc-800/30 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-orange-500/20",
+                                style: "{style}",
+                                h3 { class: "text-xl font-semibold mb-3", "{title}" }
+                                p { class: "text-zinc-400", "{description}" }
+                            }
+                        }
+                    })
             }
         }
     }

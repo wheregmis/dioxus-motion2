@@ -1336,6 +1336,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "docs"
+version = "0.1.0"
+dependencies = [
+ "dioxus",
+ "dioxus-motion2",
+ "easer",
+]
+
+[[package]]
 name = "dpi"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

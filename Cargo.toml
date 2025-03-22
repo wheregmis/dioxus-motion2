@@ -39,6 +39,7 @@ transitions = ["dioxus-motion-transitions-macro"]
 members = [
     ".",
     "example_projects/*",
+    "docs",
     "packages/dioxus-motion-transitions-macro",
 ]
 resolver = "2"
