@@ -81,9 +81,15 @@ pub fn AnimatedOutlet<R: AnimatableRoute>() -> Element {
     if let Some((from, to)) = from_route {
         // Special handling for transitions from root path
         let is_from_root = from.to_string() == "/";
+        let current_depth = outlet.level();
+        let target_depth = to.get_layout_depth();
 
-        // Animate if either we're at the correct level OR we're transitioning from root
-        if is_from_root || outlet.level() == route.get_layout_depth() {
+        // Animate if:
+        // 1. We're transitioning from root
+        // 2. We're at the correct layout depth
+        // 3. The target route has a different layout depth than the current route
+        if is_from_root || current_depth == target_depth || from.get_layout_depth() != target_depth
+        {
             return rsx! {
                 FromRouteToCurrent::<R> {
                     route_type: PhantomData,
