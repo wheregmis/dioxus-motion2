@@ -17,7 +17,7 @@ pub struct AnimationConfig {
 impl Clone for AnimationConfig {
     fn clone(&self) -> Self {
         Self {
-            mode: self.mode,
+            mode: self.mode.clone(),
             loop_mode: self.loop_mode,
             delay: self.delay,
             on_complete: None,
@@ -67,7 +67,7 @@ impl AnimationConfig {
 }
 
 /// Mode of animation (spring or tween)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum AnimationMode {
     /// Spring-based physics animation
     Spring(Spring),

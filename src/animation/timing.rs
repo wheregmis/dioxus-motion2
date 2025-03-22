@@ -1,3 +1,4 @@
+use instant::Duration;
 use std::sync::{Arc, Mutex};
 
 /// Animation loop mode
@@ -44,7 +45,7 @@ pub struct AnimationTiming {
     /// Playback direction
     pub direction: PlaybackDirection,
     /// Delay before starting
-    pub delay: instant::Duration,
+    pub delay: Duration,
     /// Current loop count
     pub current_loop: u32,
     /// Whether delay has elapsed
@@ -58,11 +59,24 @@ impl Default for AnimationTiming {
         Self {
             loop_mode: LoopMode::None,
             direction: PlaybackDirection::Forward,
-            delay: instant::Duration::ZERO,
+            delay: Duration::ZERO,
             current_loop: 0,
             delay_elapsed: false,
             on_complete: None,
         }
+    }
+}
+
+impl std::fmt::Debug for AnimationTiming {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AnimationTiming")
+            .field("loop_mode", &self.loop_mode)
+            .field("direction", &self.direction)
+            .field("delay", &self.delay)
+            .field("current_loop", &self.current_loop)
+            .field("delay_elapsed", &self.delay_elapsed)
+            .field("on_complete", &self.on_complete.is_some())
+            .finish()
     }
 }
 
@@ -85,7 +99,7 @@ impl AnimationTiming {
     }
 
     /// Set the delay before starting
-    pub fn with_delay(mut self, delay: instant::Duration) -> Self {
+    pub fn with_delay(mut self, delay: Duration) -> Self {
         self.delay = delay;
         self
     }
@@ -108,9 +122,9 @@ impl AnimationTiming {
             return true;
         }
 
-        let dt_duration = instant::Duration::from_secs_f32(dt);
+        let dt_duration = Duration::from_secs_f32(dt);
         if dt_duration >= self.delay {
-            self.delay = instant::Duration::ZERO;
+            self.delay = Duration::ZERO;
             self.delay_elapsed = true;
             true
         } else {

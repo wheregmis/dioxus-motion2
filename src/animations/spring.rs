@@ -5,13 +5,13 @@
 
 use dioxus::signals::Writable;
 
-use crate::animation::{Animation, AnimationState, AnimationTiming};
+use crate::animation::{Animation, AnimationState, AnimationTiming, LoopMode};
 use crate::{Animatable, MotionValue};
 
 /// Spring animation with configurable physics
 ///
 /// # Example
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Spring {
     /// Spring stiffness coefficient (default: 100.0)
     /// Controls how quickly the spring moves toward the target
@@ -28,6 +28,9 @@ pub struct Spring {
     /// Initial velocity (optional)
     /// Can be used to give the animation an initial push
     pub initial_velocity: Option<f32>,
+
+    /// Animation timing parameters
+    pub timing: AnimationTiming,
 }
 
 impl Default for Spring {
@@ -37,6 +40,7 @@ impl Default for Spring {
             damping: 10.0,
             mass: 1.0,
             initial_velocity: None,
+            timing: AnimationTiming::default(),
         }
     }
 }
@@ -83,7 +87,7 @@ impl Spring {
             current: initial,
             target,
             velocity: initial_velocity,
-            spring: *self,
+            spring: self.clone(),
             timing: AnimationTiming::default(),
             is_active: true,
         }
@@ -163,10 +167,15 @@ impl<T: Animatable> SpringAnimation<T> {
         // Use a much larger epsilon for completion check
         let completion_epsilon = T::epsilon() * 1000.0;
 
+        println!(
+            "Spring physics update - Velocity: {}, Displacement: {}, Epsilon: {}",
+            velocity_magnitude, displacement_magnitude, completion_epsilon
+        );
+
         if velocity_magnitude < completion_epsilon && displacement_magnitude < completion_epsilon {
+            println!("Spring animation completed - velocity and displacement below threshold");
             // Snap to target for precision
             self.current = self.target;
-
             false // Animation completed
         } else {
             true // Animation still active
@@ -195,11 +204,17 @@ impl<T: Animatable> Animation for SpringAnimation<T> {
         } else {
             // Handle loop completion
             if self.timing.handle_loop_completion() {
-                // Reset for next loop
+                println!("Spring animation loop completed, resetting for next loop");
+                // Reset for next loop but maintain target
+                let target = self.target;
                 self.current = self.initial;
+                self.target = target;
                 self.velocity = T::zero();
+                self.is_active = true; // Keep animation active for next loop
+                println!("Spring animation reset for next loop");
                 (AnimationState::Active, self.current, self.velocity)
             } else {
+                println!("Spring animation completed");
                 self.is_active = false;
                 (AnimationState::Completed, self.current, T::zero())
             }
@@ -279,6 +294,14 @@ impl<T: Animatable> SpringBuilder<T> {
     /// Set the target value for the animation
     pub fn to(mut self, target: T) -> Self {
         self.target = Some(target);
+        self
+    }
+
+    /// Set the loop mode for the animation
+    pub fn loop_mode(mut self, mode: LoopMode) -> Self {
+        let mut timing = AnimationTiming::default();
+        timing.loop_mode = mode;
+        self.spring.timing = timing;
         self
     }
 
