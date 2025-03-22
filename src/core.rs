@@ -8,7 +8,9 @@ use std::sync::{Arc, Mutex};
 
 use crate::Animatable;
 use crate::MotionTime;
-use crate::animation::{Animation, AnimationState};
+use crate::animation::{
+    Animation, AnimationConfig, AnimationMode, AnimationState, AnimationTiming,
+};
 use crate::animations::keyframe::KeyframeAnimation;
 use crate::animations::spring::Spring;
 use crate::animations::spring::SpringBuilder;
@@ -186,6 +188,7 @@ impl<T: Animatable> AnimationEngine<T> {
 
             #[cfg(not(feature = "web"))]
             {
+                use std::time::Duration;
                 let mut callbacks_to_process = std::mem::take(&mut *callbacks);
                 while !callbacks_to_process.is_empty() {
                     let chunk: Vec<_> = callbacks_to_process
@@ -253,10 +256,29 @@ impl<T: Animatable> MotionValue<T> {
         SequenceBuilder::new(*self)
     }
 
-    /// Directly animate to a value with default spring physics
-    pub fn animate_to(&mut self, target: T) -> &Self {
-        self.engine.write().spring_to(target, Spring::default());
+    /// Animate to a target value with custom configuration
+    pub fn animate_to_with_config(&mut self, target: T, config: AnimationConfig) -> &Self {
+        // Apply completion callback if provided
+        if let Some(callback) = config.on_complete {
+            self.engine.write().add_completion_callback(callback);
+        }
+
+        // Start animation based on mode
+        match config.mode {
+            AnimationMode::Spring(spring) => {
+                self.engine.write().spring_to(target, spring);
+            }
+            AnimationMode::Tween(tween) => {
+                self.engine.write().tween_to(target, tween);
+            }
+        }
+
         self
+    }
+
+    /// Animate to a target value with spring physics
+    pub fn animate_to(&mut self, target: T) -> &Self {
+        self.animate_to_with_config(target, AnimationConfig::default())
     }
 
     /// Stop any running animation

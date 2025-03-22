@@ -31,7 +31,7 @@ mod platform;
 
 // Animation type modules
 mod animation;
-mod animations;
+pub mod animations;
 mod properties;
 mod traits;
 
@@ -45,7 +45,10 @@ pub use traits::animatable::Animatable;
 /// Public prelude containing commonly used types and functions
 pub mod prelude {
     pub use crate::Duration;
+    pub use crate::animation::timing::LoopMode;
+    pub use crate::animation::{AnimationConfig, AnimationMode};
     pub use crate::animations::sequence;
+    pub use crate::animations::{spring::Spring, tween::Tween};
     pub use crate::core::{AnimationEngine, MotionValue};
     pub use crate::properties::{color::Color, transform::Transform};
     pub use crate::traits::animatable::Animatable;

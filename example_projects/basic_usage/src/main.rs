@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use dioxus::prelude::*;
 use dioxus_logger::tracing::Level;
+use dioxus_motion2::animations::keyframe::KeyframeAnimation;
 use dioxus_motion2::prelude::*;
 use easer::functions::Easing;
 
@@ -131,9 +132,9 @@ position
             r#"// Keyframe Animation - Move Left
 position
     .keyframes()
-    .keyframe(0.0, position.get())
-    .keyframe_with_easing(0.5, 300.0, easer::functions::Bounce::ease_out)
-    .keyframe(1.0, 200.0)
+    .at(0.0, position.get())
+    .at_with_easing(0.5, 300.0, easer::functions::Bounce::ease_out)
+    .at(1.0, 200.0)
     .duration(Duration::from_millis(1500))
     .start();"#
         }
@@ -240,32 +241,86 @@ pub fn PageNotFound(route: Vec<String>) -> Element {
 /// Example component showcasing various animation types in Dioxus Motion
 #[component]
 pub fn AnimationExamples() -> Element {
-    // Container for examples
     rsx! {
-        div { class: "p-8 max-w-4xl mx-auto",
-            h1 { class: "text-3xl font-bold mb-8", "Dioxus Motion Animation Examples" }
+        div {
+            class: "container mx-auto p-4",
+            h1 { class: "text-2xl font-bold mb-4", "Animation Examples" }
 
-            // Spring animation example
-            SpringExample {}
+            // Basic spring animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Spring Animation" }
+                SpringExample {}
+            }
 
-            // Tween animation example
-            TweenExample {}
+            // Basic tween animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Tween Animation" }
+                TweenExample {}
+            }
 
-            // Keyframe animation example
-            KeyframeExample {}
+            // Keyframe animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Keyframe Animation" }
+                KeyframeExample {}
+            }
 
-            // Transform animation example
-            TransformExample {}
+            // Transform animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Transform Animation" }
+                TransformExample {}
+            }
 
-            // Color animation example
-            ColorExample {}
+            // Color animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Color Animation" }
+                ColorExample {}
+            }
 
-            // Sequence animation example
-            SequenceExample {}
+            // Sequence animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Sequence Animation" }
+                SequenceExample {}
+            }
 
-            // Staggered animation example
-            StaggeredExample {}
+            // Staggered animation
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Staggered Animation" }
+                StaggeredExample {}
+            }
 
+            // Animation configuration examples
+            div {
+                class: "mb-8",
+                h2 { class: "text-xl font-semibold mb-2", "Animation Configuration Examples" }
+
+                // Loop animation example
+                div {
+                    class: "mb-4",
+                    h3 { class: "text-lg font-medium mb-2", "Loop Animation" }
+                    LoopExample {}
+                }
+
+                // Delayed animation example
+                div {
+                    class: "mb-4",
+                    h3 { class: "text-lg font-medium mb-2", "Delayed Animation" }
+                    DelayExample {}
+                }
+
+                // Callback animation example
+                div {
+                    class: "mb-4",
+                    h3 { class: "text-lg font-medium mb-2", "Callback Animation" }
+                    CallbackExample {}
+                }
+            }
         }
     }
 }
@@ -410,74 +465,69 @@ opacity.tween()
 /// Keyframe animation example
 #[component]
 fn KeyframeExample() -> Element {
-    // Create a keyframe-animated value for position
     let mut position = use_motion(0.0);
 
-    // Button click handlers for animation
     let start_animation = move |_| {
-        // Configure and start a keyframe animation
         position
             .keyframes()
             .at(0.0, 0.0)
             .at_with_easing(0.3, 150.0, easer::functions::Cubic::ease_out)
             .at_with_easing(0.7, 50.0, easer::functions::Bounce::ease_out)
             .at(1.0, 100.0)
+            .for_duration(Duration::from_millis(2000))
             .start(&mut position);
     };
 
     let reset_animation = move |_| {
-        position
-            .tween()
-            .duration(Duration::from_millis(500))
-            .animate_to(0.0);
+        position.tween().animate_to(0.0);
     };
 
-    // Generate the style based on the animated value
     let box_style = use_memo(move || format!("transform: translateX({}px);", position.get()));
 
     rsx! {
-            section { class: "mb-12 border-b pb-8",
-                h2 { class: "text-2xl font-semibold mb-4", "Keyframe Animation" }
-                p { class: "mb-4", "Keyframe animations let you define multiple points with different easing functions between them." }
+        section { class: "mb-12 border-b pb-8",
+            h2 { class: "text-2xl font-semibold mb-4", "Keyframe Animation" }
+            p { class: "mb-4", "Keyframe animations let you define multiple points with different easing functions between them." }
 
-                div { class: "my-6 relative h-24",
-                    div {
-                        class: "absolute top-0 left-0 w-16 h-16 bg-green-500 rounded shadow-md flex items-center justify-center text-white",
-                        style: "{box_style.read()}",
-                        "Box"
-                    }
+            div { class: "my-6 relative h-24",
+                div {
+                    class: "absolute top-0 left-0 w-16 h-16 bg-green-500 rounded shadow-md flex items-center justify-center text-white",
+                    style: "{box_style.read()}",
+                    "Box"
                 }
+            }
 
-                div { class: "flex gap-4",
-                    button {
-                        class: "px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded",
-                        onclick: start_animation,
-                        "Play Keyframes"
-                    }
-                    button {
-                        class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
-                        onclick: reset_animation,
-                        "Reset"
-                    }
+            div { class: "flex gap-4",
+                button {
+                    class: "px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded",
+                    onclick: start_animation,
+                    "Play Keyframes"
                 }
+                button {
+                    class: "px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded",
+                    onclick: reset_animation,
+                    "Reset"
+                }
+            }
 
-                pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
-                    code {
-    {r#"// Create a keyframe-animated value
-let position = use_motion(0.0);
+            pre { class: "mt-4 p-4 bg-gray-100 rounded overflow-x-auto text-sm",
+                code {
+                    r#"// Create a keyframe-animated value
+let mut position = use_motion(0.0);
 
 // Start a keyframe animation
-position.keyframes()
-    .keyframe(0.0, 0.0)
-    .keyframe_with_easing(0.3, 150.0, easer::functions::Cubic::ease_out)
-    .keyframe_with_easing(0.7, 50.0, easer::functions::Bounce::ease_out)
-    .keyframe(1.0, 100.0)
-    .duration(Duration::from_millis(2000))
-    .start();"#}
-                    }
+let keyframe_animation = KeyframeAnimation::new()
+    .at(0.0, 0.0)
+    .at_with_easing(0.3, 150.0, easer::functions::Cubic::ease_out)
+    .at_with_easing(0.7, 50.0, easer::functions::Bounce::ease_out)
+    .at(1.0, 100.0)
+    .for_duration(Duration::from_millis(2000));
+
+position.animate_to_with_config(keyframe_animation, AnimationConfig::default());"#
                 }
             }
         }
+    }
 }
 
 /// Transform animation example
@@ -854,4 +904,82 @@ for (i, motion) in motion_values.read().iter().enumerate() {
                 }
             }
         }
+}
+
+fn LoopExample() -> Element {
+    let mut scale = use_motion(1.0);
+    let config = AnimationConfig::new(AnimationMode::Spring(
+        Spring::new().stiffness(0.5).damping(0.8),
+    ))
+    .with_loop(LoopMode::Infinite);
+
+    rsx! {
+        div {
+            class: "p-4 bg-gray-100 rounded",
+            div {
+                style: "transform: scale({scale.get()});",
+                class: "text-center",
+                "Looping Scale Animation"
+            }
+            button {
+                class: "mt-2 px-4 py-2 bg-blue-500 text-white rounded",
+                onclick: move |_| {
+                    scale.animate_to_with_config(2.0, config.clone());
+                },
+                "Start Loop"
+            }
+        }
+    }
+}
+
+fn DelayExample() -> Element {
+    let mut rotation = use_motion(0.0);
+    let config = AnimationConfig::new(AnimationMode::Tween(
+        Tween::new()
+            .duration(Duration::from_millis(1000))
+            .easing(easer::functions::Cubic::ease_in_out),
+    ))
+    .with_delay(Duration::from_millis(500));
+
+    rsx! {
+        div {
+            class: "p-4 bg-gray-100 rounded",
+            div {
+                style: "transform: rotate({rotation.get()}deg);",
+                class: "text-center",
+                "Delayed Rotation Animation"
+            }
+            button {
+                class: "mt-2 px-4 py-2 bg-blue-500 text-white rounded",
+                onclick: move |_| {
+                    rotation.animate_to_with_config(360.0, config.clone());
+                },
+                "Start Delayed Rotation"
+            }
+        }
+    }
+}
+
+fn CallbackExample() -> Element {
+    let mut scale = use_motion(1.0);
+    let config = AnimationConfig::new(AnimationMode::Spring(Spring::default()))
+        .with_on_complete(|| println!("Animation completed!"));
+
+    rsx! {
+        div {
+            class: "p-4 bg-gray-100 rounded",
+            div {
+                style: "transform: scale({scale.get()});",
+                class: "text-center",
+                "Callback Scale Animation"
+            }
+            button {
+                class: "mt-2 px-4 py-2 bg-blue-500 text-white rounded",
+                onclick: move |_| {
+                    scale.animate_to_with_config(2.0, config.clone());
+                },
+                "Start Callback Animation"
+            }
+        }
+    }
 }

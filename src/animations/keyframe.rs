@@ -26,6 +26,9 @@ pub struct Keyframe<T: Animatable> {
     pub easing: Option<EasingFunction>,
 }
 
+type KeyframeRef<'a, T> = (&'a OrderedFloat<f32>, &'a Keyframe<T>);
+type KeyframePair<'a, T> = (Option<KeyframeRef<'a, T>>, Option<KeyframeRef<'a, T>>);
+
 impl<T: Animatable> Keyframe<T> {
     /// Create a new keyframe with a value
     pub fn new(value: T) -> Self {
@@ -148,19 +151,14 @@ impl<T: Animatable> KeyframeAnimation<T> {
     }
 
     /// Start the animation
-    pub fn start(self, motion: &mut MotionValue<T>) -> MotionValue<T> {
+    pub fn start(mut self, motion: &mut MotionValue<T>) -> MotionValue<T> {
+        self.is_active = true;
         motion.engine.write().apply_keyframes(self);
         *motion
     }
 
     /// Find the surrounding keyframes for a given position
-    fn find_surrounding_keyframes(
-        &self,
-        position: f32,
-    ) -> (
-        Option<(&OrderedFloat<f32>, &Keyframe<T>)>,
-        Option<(&OrderedFloat<f32>, &Keyframe<T>)>,
-    ) {
+    fn find_surrounding_keyframes(&self, position: f32) -> KeyframePair<T> {
         let mut prev = None;
         let mut next = None;
 
