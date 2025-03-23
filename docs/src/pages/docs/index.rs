@@ -105,154 +105,26 @@ pub fn Docs() -> Element {
         DocLayout {
             title: "Documentation",
             description: "Learn how to create beautiful, physics-based animations in your Rust applications.",
-            DocsContent {}
+            DocsContent {
+            }
         }
+
+
     }
 }
 
 #[component]
 fn DocsContent() -> Element {
-    let title_scale = use_motion(0.95);
-    let title_opacity = use_motion(0.0);
-    let content_y = use_motion(20.0);
-    let content_opacity = use_motion(0.0);
-
-    use_effect(move || {
-        title_scale
-            .spring()
-            .stiffness(100.0)
-            .damping(15.0)
-            .animate_to(1.0);
-
-        title_opacity
-            .tween()
-            .duration(Duration::from_millis(800))
-            .animate_to(1.0);
-
-        content_y
-            .spring()
-            .stiffness(100.0)
-            .damping(15.0)
-            .animate_to(0.0);
-
-        content_opacity
-            .spring()
-            .stiffness(100.0)
-            .damping(15.0)
-            .animate_to(1.0);
-    });
-
-    let title_style = use_memo(move || {
-        format!(
-            "transform: scale({}); opacity: {};",
-            title_scale.get(),
-            title_opacity.get()
-        )
-    });
-
-    let content_style = use_memo(move || {
-        format!(
-            "transform: translateY({}px); opacity: {};",
-            content_y.get(),
-            content_opacity.get()
-        )
-    });
-
     rsx! {
-        div { class: "max-w-4xl mx-auto space-y-12",
-            // Introduction section
-            section {
-                style: "{title_style}",
-                h2 { class: "text-3xl font-bold mb-6 bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent",
-                    "Getting Started with Dioxus Motion2"
-                }
-                p { class: "text-lg text-zinc-300 mb-8",
-                    "Create fluid, natural-feeling animations with spring physics and keyframe animations in your Rust applications."
+        div { class: "space-y-12",
+            // Hero section
+            section { class: "space-y-6",
+                h2 { class: "text-2xl font-semibold text-text-primary", "Getting Started" }
+                p { class: "text-text-secondary",
+                    "Learn how to create beautiful animations in your Dioxus applications, from simple tweens to complex physics-based animations."
                 }
             }
-
-            // Quick start example
-            section {
-                style: "{content_style}",
-                h3 { class: "text-2xl font-semibold mb-4", "Quick Start" }
-                div { class: "bg-zinc-800/50 rounded-xl p-6 mb-8",
-                    CodeBlock {
-                        code: r#"use dioxus::prelude::*;
-                    use dioxus_motion2::prelude::*;
-
-                    #[component]
-                    fn AnimatedButton() -> Element {
-                        let scale = use_motion(0.95);
-                        let opacity = use_motion(0.0);
-
-                        use_effect(move || {
-                            scale.spring()
-                                .stiffness(100.0)
-                                .damping(15.0)
-                                .animate_to(1.0);
-
-                            opacity.tween()
-                                .duration(Duration::from_millis(800))
-                                .animate_to(1.0);
-                        });
-
-                        rsx! {
-                            button {
-                                style: "transform: scale({scale}); opacity: {opacity};",
-                                "Click me!"
-                            }
-                        }
-                    }"#.to_string(),
-                        language: "rust".to_string(),
-                    }
-                }
-            }
-
-            // Feature showcase
-            section {
-                style: "{content_style}",
-                h3 { class: "text-2xl font-semibold mb-6", "Core Features" }
-                div { class: "grid grid-cols-1 md:grid-cols-2 gap-6",
-                    FeatureCard {
-                        title: "Spring Physics",
-                        description: "Natural-feeling animations powered by spring physics simulation",
-                        code: "value.spring().stiffness(100.0).damping(15.0).animate_to(1.0)"
-                    }
-                    FeatureCard {
-                        title: "Keyframe Animations",
-                        description: "Precise control with keyframe-based animations",
-                        code: "value.keyframes().at(0.0, 0.0).at(0.5, 1.0).at(1.0, 0.0)"
-                    }
-                    FeatureCard {
-                        title: "Tween Animations",
-                        description: "Simple, duration-based transitions",
-                        code: "value.tween().duration(Duration::from_millis(800)).animate_to(1.0)"
-                    }
-                    FeatureCard {
-                        title: "Type-Safe API",
-                        description: "Leverage Rust's type system for reliable animations",
-                        code: "let scale: Motion<f32> = use_motion(1.0);"
-                    }
-                }
-            }
-
-            // Next steps
-            section {
-                style: "{content_style}",
-                h3 { class: "text-2xl font-semibold mb-4", "Next Steps" }
-                div { class: "space-y-4",
-                    Link {
-                        to: Route::PageTransition {},
-                        class: "block p-4 bg-zinc-800/30 rounded-lg hover:bg-zinc-800/50 transition-all",
-                        "→ Learn about Page Transitions"
-                    }
-                    Link {
-                        to: Route::Animations {},
-                        class: "block p-4 bg-zinc-800/30 rounded-lg hover:bg-zinc-800/50 transition-all",
-                        "→ Explore Interactive Animation Guide"
-                    }
-                }
-            }
+            AnimatedOutlet::<Route> {}
         }
     }
 }
@@ -585,5 +457,7 @@ mobile = ["dioxus/mobile", "dioxus-motion2/desktop"]"#.to_string(),
                 }
             }
         }
+
+
     }
 }

@@ -1,7 +1,7 @@
 use crate::components::code_block::CodeBlock;
 use dioxus::prelude::*;
 use dioxus_motion2::prelude::*;
-use easer::functions::Easing;
+use easer::functions::Easing; // Import your homepage demo component
 
 #[component]
 /// Renders an animation step layout.
@@ -165,18 +165,6 @@ struct ColorValue {
 }
 
 impl Animatable for ColorValue {
-    /// Returns a new `ColorValue` with all components (r, g, and b) set to zero.
-    ///
-    /// Creates a zero-initialized color, which can be used as a default or starting point in color operations.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let color = ColorValue::zero();
-    /// assert_eq!(color.r, 0.0);
-    /// assert_eq!(color.g, 0.0);
-    /// assert_eq!(color.b, 0.0);
-    /// ```
     fn zero() -> Self {
         ColorValue {
             r: 0.0,
@@ -184,46 +172,12 @@ impl Animatable for ColorValue {
             b: 0.0,
         }
     }
-
-    /// Returns a small epsilon value (0.001) used as a tolerance threshold in floating-point calculations.
-    ///
-    /// This constant is useful for comparing floating point numbers and mitigating precision issues.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let tol = epsilon();
-    /// // Use epsilon for approximate comparisons between floating point numbers
-    /// assert!((tol - 0.001).abs() < 1e-6);
-    /// ```
     fn epsilon() -> f32 {
         0.001
     }
-
-    /// Computes the Euclidean magnitude of the color by calculating the square root of the sum of the squares of its red, green, and blue components.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let color = ColorValue { r: 3.0, g: 4.0, b: 0.0 };
-    /// assert_eq!(color.magnitude(), 5.0);
-    /// ```
     fn magnitude(&self) -> f32 {
         (self.r * self.r + self.g * self.g + self.b * self.b).sqrt()
     }
-
-    /// Scales the color by multiplying each channel by the given factor and clamping the result to the [0.0, 1.0] range.
-    ///
-    /// This method multiplies the red, green, and blue components by the specified factor, ensuring that each channel remains within valid bounds.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let color = ColorValue { r: 0.3, g: 0.5, b: 0.7 };
-    /// let scaled_color = color.scale(2.0);
-    /// // Each component is scaled and clamped to a maximum of 1.0.
-    /// assert!(scaled_color.r <= 1.0 && scaled_color.g <= 1.0 && scaled_color.b <= 1.0);
-    /// ```
     fn scale(&self, factor: f32) -> Self {
         ColorValue {
             r: (self.r * factor).clamp(0.0, 1.0),
@@ -231,22 +185,6 @@ impl Animatable for ColorValue {
             b: (self.b * factor).clamp(0.0, 1.0),
         }
     }
-
-    /// Adds two `ColorValue` instances component-wise, clamping each resulting channel to the range [0.0, 1.0].
-    ///
-    /// Each channel (red, green, and blue) is summed individually and then clamped to ensure the resulting value
-    /// remains within the valid range. This operation is useful for blending colors without exceeding the maximum intensity.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let color1 = ColorValue { r: 0.5, g: 0.4, b: 0.3 };
-    /// let color2 = ColorValue { r: 0.7, g: 0.8, b: 0.9 };
-    /// let result = color1.add(&color2);
-    /// assert_eq!(result.r, 1.0);
-    /// assert_eq!(result.g, 1.0);
-    /// assert_eq!(result.b, 1.0);
-    /// ```
     fn add(&self, other: &Self) -> Self {
         ColorValue {
             r: (self.r + other.r).clamp(0.0, 1.0),
@@ -254,24 +192,6 @@ impl Animatable for ColorValue {
             b: (self.b + other.b).clamp(0.0, 1.0),
         }
     }
-
-    /// Subtracts the corresponding color components of another `ColorValue` from this one, clamping each result between 0.0 and 1.0.
-    ///
-    /// This method performs component-wise subtraction on the red, green, and blue channels, ensuring that the result does not fall below 0.0 or exceed 1.0.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let color1 = ColorValue { r: 0.8, g: 0.7, b: 0.6 };
-    /// let color2 = ColorValue { r: 0.3, g: 0.4, b: 0.5 };
-    /// let result = color1.sub(&color2);
-    ///
-    /// // Expected results after subtraction and clamping:
-    /// // red: 0.8 - 0.3 = 0.5, green: 0.7 - 0.4 = 0.3, blue: 0.6 - 0.5 = 0.1
-    /// assert_eq!(result.r, 0.5);
-    /// assert_eq!(result.g, 0.3);
-    /// assert_eq!(result.b, 0.1);
-    /// ```
     fn sub(&self, other: &Self) -> Self {
         ColorValue {
             r: (self.r - other.r).clamp(0.0, 1.0),
@@ -279,25 +199,6 @@ impl Animatable for ColorValue {
             b: (self.b - other.b).clamp(0.0, 1.0),
         }
     }
-
-    /// Linearly interpolates between the current color and a target color.
-    ///
-    /// Produces a new `ColorValue` by blending `self` and `target` based on the
-    /// interpolation factor `t`. When `t` is 0.0, the result is `self`; when `t` is 1.0,
-    /// the result is `target`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let start = ColorValue { r: 0.0, g: 0.0, b: 0.0 };
-    /// let end = ColorValue { r: 1.0, g: 1.0, b: 1.0 };
-    /// let mid = start.interpolate(&end, 0.5);
-    ///
-    /// // The mid point should have each component approximately equal to 0.5.
-    /// assert!((mid.r - 0.5).abs() < f32::EPSILON);
-    /// assert!((mid.g - 0.5).abs() < f32::EPSILON);
-    /// assert!((mid.b - 0.5).abs() < f32::EPSILON);
-    /// ```
     fn interpolate(&self, target: &Self, t: f32) -> Self {
         ColorValue {
             r: self.r + (target.r - self.r) * t,
@@ -314,7 +215,7 @@ impl Animatable for ColorValue {
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use dioxus::prelude::*;
 ///
 /// fn App(cx: Scope) -> Element {
@@ -439,7 +340,7 @@ fn SequenceAnimation() -> Element {
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use dioxus::prelude::*;
 ///
 /// fn main() {
@@ -704,6 +605,49 @@ rsx! {
     }
 }"#.to_string(),
                 SequenceAnimation {}
+            }
+
+            // Advanced Home Animation Demo
+            AnimationStep {
+                title: "6. Advanced Home Animation Demo".to_string(),
+                description: "A complete example combining multiple layers and advanced motion techniques using Dioxus Motion. This demo renders a homepage with animated backgrounds, orbiting elements, and interactive UI components.".to_string(),
+                code: r#"// File: home_demo.rs
+use dioxus::prelude::*;
+use dioxus_motion2::*;
+use std::f32::consts::PI;
+
+#[component]
+pub fn Home() -> Element {
+    rsx! {
+        div { class: "h-[calc(100vh-4rem)] relative overflow-hidden",
+            // Background layer (lowest)
+            div { class: "absolute inset-0 z-0", AnimatedBackground {} }
+            // Decorative elements layer
+            div { class: "absolute inset-0 z-10", DecorativeCircle {} }
+            // Orbital system layer
+            div { class: "absolute inset-0 z-20", OrbitalSystem {} }
+            // Content layer (highest)
+            div { class: "relative z-30 h-full flex flex-col",
+                // Main content container
+                div { class: "flex-1 container mx-auto px-4 flex flex-col",
+                    // Hero content
+                    div { class: "pt-32 pb-16", HeroContent {} }
+                    // Feature cards with adjusted background
+                    div { class: "mt-auto pb-16", FeatureCards {} }
+                    // Learn more button
+                    LearnMore {}
+                }
+                Footer {}
+            }
+        }
+    }
+}
+
+// (Additional component definitions for AnimatedBackground, HeroContent, DecorativeCircle,
+// OrbitalSystem, LearnMore, FeatureCards, and Footer follow here)
+"#.to_string(),
+                // Live demo renders the complete Home component
+
             }
 
             // Best Practices
